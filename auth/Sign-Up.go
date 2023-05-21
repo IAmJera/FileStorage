@@ -2,14 +2,12 @@ package auth
 
 import (
 	"FileStorage/storage"
-	account "FileStorage/user"
-	"github.com/bradfitz/gomemcache/memcache"
+	"FileStorage/user"
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"os"
 )
-
-var cache = memcache.New("localhost:11211")
 
 func SignUpHandler() gin.HandlerFunc {
 	fn := func(c *gin.Context) {
@@ -27,7 +25,8 @@ func SignUpHandler() gin.HandlerFunc {
 			c.IndentedJSON(http.StatusOK, gin.H{"error": "credentials does not meet requirements"})
 			return
 		}
-		if err := storage.SetUser(user); err != nil {
+		if err := storage.SetUser(user.Login, user.Password); err != nil {
+			fmt.Println("aaa")
 			c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": err})
 			return
 		}

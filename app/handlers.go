@@ -1,10 +1,10 @@
 package app
 
 import (
+	"FileStorage/app/general"
 	"FileStorage/auth"
 	"github.com/gin-gonic/gin"
 	"io"
-	"log"
 	"mime/multipart"
 	"net/http"
 	"os"
@@ -74,7 +74,7 @@ func UploadFileHandler() gin.HandlerFunc {
 		if err != nil {
 			c.IndentedJSON(http.StatusBadRequest, gin.H{"error": err})
 		}
-		defer CloseFile(file)
+		defer general.CloseFile(file)
 
 		if err := writeFile(c, file, header.Filename); err != nil {
 			c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": err})
@@ -92,22 +92,11 @@ func writeFile(c *gin.Context, file multipart.File, filename string) error {
 	if err != nil {
 		return err
 	}
-	defer CloseFile(out)
+	defer general.CloseFile(out)
 
 	if _, err = io.Copy(out, file); err != nil {
 		return err
 	}
 
 	return nil
-}
-
-type Closer interface {
-	Close() error
-}
-
-func CloseFile(c Closer) {
-	if err := c.Close(); err != nil {
-		log.Println("error occurred: ", err)
-	}
-	return
 }

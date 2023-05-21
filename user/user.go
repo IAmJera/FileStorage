@@ -4,7 +4,6 @@ import (
 	"FileStorage/storage"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt"
-	"golang.org/x/crypto/sha3"
 	"net/http"
 	"os"
 	"strconv"
@@ -21,12 +20,12 @@ type User struct {
 
 func (user *User) Exist() (bool, bool) { // isExist, sameHash
 	sameHash := false
-	usr, err := storage.GetUser(user.Login)
-	if err != nil || usr.Password == "" {
+	passwd, err := storage.GetUser(user.Login)
+	if err != nil || passwd == "" {
 		return false, false
 	}
 
-	if usr.Password == string(Hash(user.Password)) {
+	if passwd == string(storage.Hash(user.Password)) {
 		sameHash = true
 	}
 	return true, sameHash
@@ -34,12 +33,14 @@ func (user *User) Exist() (bool, bool) { // isExist, sameHash
 
 func (user *User) CheckCredentials(c *gin.Context) bool {
 	loginMin, _ := strconv.Atoi(os.Getenv("LOGINMINLEN"))
-	if len(user.Login) < loginMin {
+	loginMax, _ := strconv.Atoi(os.Getenv("LOGINMAXLEN"))
+	if len(user.Login) < loginMin && len(user.Login) > loginMax {
 		c.IndentedJSON(http.StatusOK, gin.H{"error": "login must be minimum 4 characters"})
 		return false
 	}
 	passMin, _ := strconv.Atoi(os.Getenv("PASSMINLEN"))
-	if len(user.Password) < passMin {
+	passMax, _ := strconv.Atoi(os.Getenv("PASSMAXLEN"))
+	if len(user.Password) < passMin && len(user.Password) > passMax {
 		c.IndentedJSON(http.StatusOK, gin.H{"error": "password must be minimum 10 characters"})
 		return false
 	}
@@ -61,13 +62,6 @@ func (user *User) ParseCredentials(c *gin.Context) bool {
 		}
 	}
 	return true
-}
-
-func Hash(passwd string) []byte {
-	pwd := sha3.New256()
-	pwd.Write([]byte(passwd))
-	pwd.Write([]byte(os.Getenv("SALT")))
-	return pwd.Sum(nil)
 }
 
 func (user *User) SignIn() (string, error) {

@@ -1,7 +1,7 @@
 package auth
 
 import (
-	account "FileStorage/user"
+	"FileStorage/user"
 	"errors"
 	"fmt"
 	"github.com/gin-gonic/gin"
