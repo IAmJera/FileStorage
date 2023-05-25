@@ -35,7 +35,7 @@ func SignUpHandler() gin.HandlerFunc {
 			c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": "error creating user directory"})
 			return
 		}
-		c.IndentedJSON(http.StatusOK, gin.H{"message": "user created successfully"})
+		c.IndentedJSON(http.StatusCreated, gin.H{"message": "user created successfully"})
 	}
 	return fn
 }

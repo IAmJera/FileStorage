@@ -1,6 +1,7 @@
 package account
 
 import (
+	"FileStorage/app/general"
 	"FileStorage/storage"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt"
@@ -25,7 +26,7 @@ func (user *User) Exist() (bool, bool) { // isExist, sameHash
 		return false, false
 	}
 
-	if passwd == string(storage.Hash(user.Password)) {
+	if passwd == string(general.Hash(user.Password)) {
 		sameHash = true
 	}
 	return true, sameHash

@@ -5,17 +5,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/bradfitz/gomemcache/memcache"
-	"github.com/joho/godotenv"
-	"golang.org/x/crypto/sha3"
-	"log"
-	"os"
 )
-
-func init() {
-	if err := godotenv.Load(); err != nil {
-		log.Fatal(err)
-	}
-}
 
 var storage = InitStorages()
 
@@ -61,7 +51,7 @@ func getFromDB(login string) (string, error) {
 }
 
 func cacheUser(login, password string) error {
-	if err := storage.Cache.Set(&memcache.Item{Key: "user_" + login, Value: Hash(password)}); err != nil {
+	if err := storage.Cache.Set(&memcache.Item{Key: "user_" + login, Value: general.Hash(password)}); err != nil {
 		return err
 	}
 	return nil
@@ -76,11 +66,4 @@ func SetUser(login, password string) error {
 		return err
 	}
 	return nil
-}
-
-func Hash(passwd string) []byte {
-	pwd := sha3.New256()
-	pwd.Write([]byte(passwd))
-	pwd.Write([]byte(os.Getenv("SALT")))
-	return pwd.Sum(nil)
 }
