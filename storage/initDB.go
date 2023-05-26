@@ -6,6 +6,7 @@ import (
 	"github.com/bradfitz/gomemcache/memcache"
 	"github.com/go-sql-driver/mysql"
 	"log"
+	"os"
 	"time"
 )
 
@@ -16,7 +17,7 @@ type Storage struct {
 
 func InitStorages() Storage {
 	strg := Storage{}
-	strg.Cache = memcache.New("localhost:11211")
+	strg.Cache = memcache.New(os.Getenv("CACHE_ADDRESS"))
 	var err error
 	if strg.MySQL, err = initMySQL(); err != nil {
 		log.Fatal(err)
@@ -28,12 +29,15 @@ func InitStorages() Storage {
 }
 
 func initMySQL() (*sql.DB, error) {
+	addr := os.Getenv("MYSQL_ADDRESS")
+	login := os.Getenv("MYSQL_USER")
+	passwd := os.Getenv("MYSQL_PASSWORD")
 	auth := mysql.Config{
-		User:                 "root",    //os.Getenv("MYSQL_USER"),
-		Passwd:               "example", //os.Getenv("MYSQL_PASSWORD"),
+		User:                 login,
+		Passwd:               passwd,
 		Net:                  "tcp",
-		Addr:                 "192.168.88.150:3306", //os.Getenv("MYSQL_ADDRESS") + ":" + os.Getenv("MYSQL_PORT"),
-		DBName:               "storage",             //os.Getenv("MYSQL_DB"),
+		Addr:                 addr,
+		DBName:               "storage",
 		AllowNativePasswords: true,
 	}
 	db, err := sql.Open("mysql", auth.FormatDSN())
@@ -63,6 +67,7 @@ func prepareDB(db *sql.DB) error {
 			return err
 		}
 	}
+
 	return nil
 }
 

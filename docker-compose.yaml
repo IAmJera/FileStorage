@@ -1,0 +1,46 @@
+version: '3'
+services:
+  db:
+    container_name: mysql_storage
+    image: mysql:latest
+    restart: unless-stopped
+    env_file:
+      - ./config.env
+    environment:
+      MYSQL_DATABASE: storage
+      MYSQL_RANDOM_ROOT_PASSWORD: yes
+    networks:
+      default:
+        ipv4_address: 172.20.0.2
+
+  cache:
+    container_name: cache_storage
+    image: memcached:latest
+    restart: unless-stopped
+    networks:
+      default:
+        ipv4_address: 172.20.0.3
+
+  storage:
+    container_name: storage
+    build: .
+#    image: storage:latest
+    restart: unless-stopped
+    env_file:
+      - ./config.env
+    ports:
+      - '8080:8080'
+    networks:
+      default:
+        ipv4_address: 172.20.0.4
+    environment:
+      MYSQL_ADDRESS: '172.20.0.2:3306'
+      CACHE_ADDRESS: '172.20.0.3:11211'
+      BASEDIR: "/data/"
+
+networks:
+  default:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/24

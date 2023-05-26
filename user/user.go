@@ -7,7 +7,6 @@ import (
 	"github.com/golang-jwt/jwt"
 	"net/http"
 	"os"
-	"strconv"
 	"strings"
 	"time"
 )
@@ -18,6 +17,13 @@ type User struct {
 	Password string `json:"password"`
 	Role     string
 }
+
+var (
+	loginMin = 4
+	loginMax = 30
+	passMin  = 10
+	passMax  = 255
+)
 
 func (user *User) Exist() (bool, bool) { // isExist, sameHash
 	sameHash := false
@@ -33,14 +39,10 @@ func (user *User) Exist() (bool, bool) { // isExist, sameHash
 }
 
 func (user *User) CheckCredentials(c *gin.Context) bool {
-	loginMin, _ := strconv.Atoi(os.Getenv("LOGINMINLEN"))
-	loginMax, _ := strconv.Atoi(os.Getenv("LOGINMAXLEN"))
 	if len(user.Login) < loginMin && len(user.Login) > loginMax {
 		c.IndentedJSON(http.StatusOK, gin.H{"error": "login must be minimum 4 characters"})
 		return false
 	}
-	passMin, _ := strconv.Atoi(os.Getenv("PASSMINLEN"))
-	passMax, _ := strconv.Atoi(os.Getenv("PASSMAXLEN"))
 	if len(user.Password) < passMin && len(user.Password) > passMax {
 		c.IndentedJSON(http.StatusOK, gin.H{"error": "password must be minimum 10 characters"})
 		return false

@@ -4,15 +4,11 @@ import (
 	"FileStorage/app"
 	"FileStorage/auth"
 	"github.com/gin-gonic/gin"
-	"github.com/joho/godotenv"
 	"log"
 	"os"
 )
 
 func main() {
-	if err := godotenv.Load(); err != nil {
-		return
-	}
 	gin.SetMode(gin.ReleaseMode)
 	r := gin.Default()
 	r.POST("/auth/Sign-In", auth.SignInHandler())
@@ -22,7 +18,7 @@ func main() {
 	r.GET("/app/Delete/:file", auth.Middleware(), app.DeleteFileHandler())
 	r.GET("/app/Download/:file", auth.Middleware(), app.DownloadFileHandler())
 
-	if err := r.Run("localhost:8800"); err != nil {
+	if err := r.Run(":8080"); err != nil {
 		log.Printf("error occurred: %s", err)
 		os.Exit(1)
 	}
