@@ -20,7 +20,7 @@ func DeleteFileHandler() gin.HandlerFunc {
 			c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": err})
 			return
 		}
-		if err := os.RemoveAll(os.Getenv("BASEDIR") + token[0] + "/" + c.Param("file")); err != nil {
+		if err = os.RemoveAll(os.Getenv("BASEDIR") + token[0] + "/" + c.Param("file")); err != nil {
 			c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": err})
 			return
 		}
@@ -59,11 +59,11 @@ func ListFilesHandler() gin.HandlerFunc {
 			return
 		}
 
-		var fls []string
+		var filesList []string
 		for _, f := range files {
-			fls = append(fls, f.Name())
+			filesList = append(filesList, f.Name())
 		}
-		c.IndentedJSON(http.StatusOK, gin.H{"message": fls})
+		c.IndentedJSON(http.StatusOK, gin.H{"message": filesList})
 	}
 	return fn
 }
@@ -76,7 +76,7 @@ func UploadFileHandler() gin.HandlerFunc {
 		}
 		defer general.CloseFile(file)
 
-		if err := writeFile(c, file, header.Filename); err != nil {
+		if err = writeFile(c, file, header.Filename); err != nil {
 			c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": err})
 			return
 		}
@@ -87,8 +87,7 @@ func UploadFileHandler() gin.HandlerFunc {
 
 func writeFile(c *gin.Context, file multipart.File, filename string) error {
 	token, err := auth.ParseToken(strings.Split(c.GetHeader("Authorization"), " ")[1], mySigningKey)
-
-	out, err := os.Create(token[0] + "/" + filename)
+	out, err := os.Create(os.Getenv("BASEDIR") + token[0] + "/" + filename)
 	if err != nil {
 		return err
 	}

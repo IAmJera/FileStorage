@@ -5,6 +5,7 @@ import (
 	"FileStorage/storage"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt"
+	"log"
 	"net/http"
 	"os"
 	"strings"
@@ -22,7 +23,6 @@ var (
 	loginMin = 4
 	loginMax = 30
 	passMin  = 10
-	passMax  = 255
 )
 
 func (user *User) Exist() (bool, bool) { // isExist, sameHash
@@ -32,19 +32,17 @@ func (user *User) Exist() (bool, bool) { // isExist, sameHash
 		return false, false
 	}
 
-	if passwd == string(general.Hash(user.Password)) {
+	if passwd == general.Hash(user.Password) {
 		sameHash = true
 	}
 	return true, sameHash
 }
 
-func (user *User) CheckCredentials(c *gin.Context) bool {
+func (user *User) CheckCredentials() bool {
 	if len(user.Login) < loginMin && len(user.Login) > loginMax {
-		c.IndentedJSON(http.StatusOK, gin.H{"error": "login must be minimum 4 characters"})
 		return false
 	}
-	if len(user.Password) < passMin && len(user.Password) > passMax {
-		c.IndentedJSON(http.StatusOK, gin.H{"error": "password must be minimum 10 characters"})
+	if len(user.Password) < passMin {
 		return false
 	}
 	return true
@@ -52,6 +50,7 @@ func (user *User) CheckCredentials(c *gin.Context) bool {
 
 func (user *User) ParseCredentials(c *gin.Context) bool {
 	if err := c.Request.ParseForm(); err != nil {
+		log.Printf("ParseCredentials: %s", err)
 		c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": err})
 		return false
 	}

@@ -1,9 +1,9 @@
 package auth
 
 import (
+	"FileStorage/app/general"
 	"FileStorage/storage"
 	"FileStorage/user"
-	"fmt"
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"os"
@@ -21,12 +21,11 @@ func SignUpHandler() gin.HandlerFunc {
 			c.IndentedJSON(http.StatusOK, gin.H{"error": "user already exist"})
 			return
 		}
-		if ok := user.CheckCredentials(c); !ok {
+		if ok := user.CheckCredentials(); !ok {
 			c.IndentedJSON(http.StatusOK, gin.H{"error": "credentials does not meet requirements"})
 			return
 		}
-		if err := storage.SetUser(user.Login, user.Password); err != nil {
-			fmt.Println("aaa")
+		if err := storage.SetUser(user.Login, general.Hash(user.Password)); err != nil {
 			c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": err})
 			return
 		}

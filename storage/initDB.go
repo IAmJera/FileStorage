@@ -22,7 +22,7 @@ func InitStorages() Storage {
 	if strg.MySQL, err = initMySQL(); err != nil {
 		log.Fatal(err)
 	}
-	if err := prepareDB(strg.MySQL); err != nil {
+	if err = prepareDB(strg.MySQL); err != nil {
 		log.Fatal(err)
 	}
 	return strg
@@ -61,13 +61,12 @@ func prepareDB(db *sql.DB) error {
 		return nil
 	}
 
-	query := "CREATE TABLE `users` ( `login` varchar(30), `password` varchar(255));"
+	query := "CREATE TABLE `users` ( `login` varchar(30), `password` varchar(64));"
 	if _, err := db.ExecContext(context.Background(), query); err != nil {
 		if err.Error() != "Error 1050 (42S01): Table 'users' already exists" {
 			return err
 		}
 	}
-
 	return nil
 }
 

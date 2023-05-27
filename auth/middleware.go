@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt"
+	"log"
 	"net/http"
 	"os"
 	"strings"
@@ -17,12 +18,14 @@ func Middleware() gin.HandlerFunc {
 	fn := func(c *gin.Context) {
 		header := c.GetHeader("Authorization")
 		if header == "" {
+			log.Printf("Middleware: empty header")
 			c.AbortWithStatus(http.StatusUnauthorized)
 			return
 		}
 
 		headerPart := strings.Split(header, " ")
 		if len(headerPart) != 2 || headerPart[0] != "Bearer" {
+			log.Printf("Middleware: wrong header")
 			c.AbortWithStatus(http.StatusUnauthorized)
 			return
 		}

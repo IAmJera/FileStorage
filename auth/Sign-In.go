@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"FileStorage/app/general"
 	"FileStorage/user"
 	"github.com/gin-gonic/gin"
 	"net/http"
@@ -21,6 +22,7 @@ func SignInHandler() gin.HandlerFunc {
 		}
 
 		if sameHash {
+			user.Password = general.Hash(user.Password)
 			token, err := user.SignIn()
 			if err != nil {
 				c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": err})
