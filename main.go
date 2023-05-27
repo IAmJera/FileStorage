@@ -5,7 +5,6 @@ import (
 	"FileStorage/auth"
 	"github.com/gin-gonic/gin"
 	"log"
-	"os"
 )
 
 func main() {
@@ -19,7 +18,6 @@ func main() {
 	r.GET("/app/Download/:file", auth.Middleware(), app.DownloadFileHandler())
 
 	if err := r.Run(":8080"); err != nil {
-		log.Printf("error occurred: %s", err)
-		os.Exit(1)
+		log.Panicf("error occurred: %s", err)
 	}
 }
