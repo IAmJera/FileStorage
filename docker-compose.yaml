@@ -6,6 +6,8 @@ services:
     restart: unless-stopped
     env_file:
       - ./config.env
+#    ports:         #for debug
+#      - '3306:3306'
     environment:
       MYSQL_DATABASE: storage
       MYSQL_RANDOM_ROOT_PASSWORD: yes
@@ -24,7 +26,6 @@ services:
   storage:
     container_name: storage
     build: .
-#    image: storage:latest
     restart: unless-stopped
     env_file:
       - ./config.env
@@ -37,6 +38,8 @@ services:
       MYSQL_ADDRESS: '172.20.0.2:3306'
       CACHE_ADDRESS: '172.20.0.3:11211'
       BASEDIR: "/data/"
+#    volumes:
+#      - ./storage/data:/data
 
 networks:
   default:
