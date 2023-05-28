@@ -24,7 +24,9 @@ func GetUser(login string) (string, error) {
 func getFromCache(login string) (string, error) {
 	res, err := storage.Cache.Get("user_" + login)
 	if err != nil {
-		log.Printf("getFromCache:%s", err)
+		if err.Error() != "memcache: cache miss" {
+			log.Printf("getFromCache:%s", err)
+		}
 		return "", err
 	}
 	return string(res.Value), nil
