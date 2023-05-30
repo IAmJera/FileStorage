@@ -1,3 +1,4 @@
+// Package auth defines the functions responsible for auth
 package auth
 
 import (
@@ -9,28 +10,29 @@ import (
 	"os"
 )
 
+// SignUpHandler registers the user by writing his data to the database
 func SignUpHandler() gin.HandlerFunc {
 	fn := func(c *gin.Context) {
-		var user account.User
-		if ok := user.ParseCredentials(c); !ok {
+		var usr user.User
+		if ok := usr.ParseCredentials(c); !ok {
 			return
 		}
 
-		isExist, _ := user.Exist()
+		isExist, _ := usr.Exist()
 		if isExist {
 			c.IndentedJSON(http.StatusOK, gin.H{"error": "user already exist"})
 			return
 		}
-		if ok := user.CheckCredentials(); !ok {
+		if ok := usr.CheckCredentials(); !ok {
 			c.IndentedJSON(http.StatusOK, gin.H{"error": "credentials does not meet requirements"})
 			return
 		}
-		if err := storage.SetUser(user.Login, general.Hash(user.Password)); err != nil {
+		if err := storage.SetUser(usr.Login, general.Hash(usr.Password)); err != nil {
 			c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": err})
 			return
 		}
 
-		if err := os.Mkdir(os.Getenv("BASEDIR")+user.Login, os.ModePerm); err != nil {
+		if err := os.Mkdir(os.Getenv("BASEDIR")+usr.Login, os.ModePerm); err != nil {
 			c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": "error creating user directory"})
 			return
 		}

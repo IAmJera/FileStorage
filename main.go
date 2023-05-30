@@ -1,3 +1,4 @@
+// Package main defines the router and its methods
 package main
 
 import (

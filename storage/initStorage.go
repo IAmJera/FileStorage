@@ -1,7 +1,7 @@
+// Package storage defines the functions that use the database and cache
 package storage
 
 import (
-	"context"
 	"database/sql"
 	"github.com/bradfitz/gomemcache/memcache"
 	"github.com/go-sql-driver/mysql"
@@ -10,11 +10,13 @@ import (
 	"time"
 )
 
+// Storage stores the cache and database fields
 type Storage struct {
 	Cache *memcache.Client
 	MySQL *sql.DB
 }
 
+// InitStorages initializes all storages and returns the structure with them
 func InitStorages() Storage {
 	strg := Storage{}
 	strg.Cache = memcache.New(os.Getenv("CACHE_ADDRESS"))
@@ -48,7 +50,7 @@ func initMySQL() (*sql.DB, error) {
 	db.SetMaxOpenConns(10)
 	db.SetMaxIdleConns(10)
 
-	if err := db.Ping(); err != nil {
+	if err = db.Ping(); err != nil {
 		return nil, err
 	}
 	return db, err
@@ -62,7 +64,7 @@ func prepareDB(db *sql.DB) error {
 	}
 
 	query := "CREATE TABLE `users` ( `login` varchar(30), `password` varchar(64));"
-	if _, err := db.ExecContext(context.Background(), query); err != nil {
+	if _, err := db.Exec(query); err != nil {
 		if err.Error() != "Error 1050 (42S01): Table 'users' already exists" {
 			return err
 		}

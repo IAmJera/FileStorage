@@ -1,3 +1,4 @@
+// Package auth defines the functions responsible for auth
 package auth
 
 import (
@@ -7,23 +8,24 @@ import (
 	"net/http"
 )
 
+// SignInHandler authenticate the user and returns a jwt token to him
 func SignInHandler() gin.HandlerFunc {
 	fn := func(c *gin.Context) {
-		var user account.User
-		if ok := user.ParseCredentials(c); !ok {
+		var usr user.User
+		if ok := usr.ParseCredentials(c); !ok {
 			c.AbortWithStatus(http.StatusBadRequest)
 			return
 		}
 
-		isExist, sameHash := user.Exist()
+		isExist, sameHash := usr.Exist()
 		if !isExist {
 			c.IndentedJSON(http.StatusOK, gin.H{"error": "user does not exist"})
 			return
 		}
 
 		if sameHash {
-			user.Password = general.Hash(user.Password)
-			token, err := user.SignIn()
+			usr.Password = general.Hash(usr.Password)
+			token, err := usr.SignIn()
 			if err != nil {
 				c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": err})
 				return

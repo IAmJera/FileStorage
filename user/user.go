@@ -1,4 +1,5 @@
-package account
+// Package user defines the structure and methods of the user
+package user
 
 import (
 	"FileStorage/app/general"
@@ -12,6 +13,7 @@ import (
 	"time"
 )
 
+// User defines user structure
 type User struct {
 	jwt.StandardClaims
 	Login    string `json:"login"`
@@ -25,6 +27,7 @@ var (
 	passMin  = 10
 )
 
+// Exist checks if a user with this name exists and if their password hashes are similar
 func (user *User) Exist() (bool, bool) { // isExist, sameHash
 	sameHash := false
 	passwd, err := storage.GetUser(user.Login)
@@ -38,6 +41,7 @@ func (user *User) Exist() (bool, bool) { // isExist, sameHash
 	return true, sameHash
 }
 
+// CheckCredentials Checks whether the user data corresponds to the requirements
 func (user *User) CheckCredentials() bool {
 	if len(user.Login) < loginMin && len(user.Login) > loginMax {
 		return false
@@ -48,6 +52,7 @@ func (user *User) CheckCredentials() bool {
 	return true
 }
 
+// ParseCredentials parses the query and fills in the user structure
 func (user *User) ParseCredentials(c *gin.Context) bool {
 	if err := c.Request.ParseForm(); err != nil {
 		log.Printf("ParseCredentials: %s", err)
@@ -66,6 +71,7 @@ func (user *User) ParseCredentials(c *gin.Context) bool {
 	return true
 }
 
+// SignIn creates and returns a jwt token
 func (user *User) SignIn() (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, &User{
 		StandardClaims: jwt.StandardClaims{

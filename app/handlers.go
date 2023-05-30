@@ -1,3 +1,4 @@
+// Package app determines the handlers of the application
 package app
 
 import (
@@ -13,6 +14,7 @@ import (
 
 var mySigningKey = []byte(os.Getenv("SIGNINGKEY"))
 
+// DeleteFileHandler sends a request to delete the user's file
 func DeleteFileHandler() gin.HandlerFunc {
 	fn := func(c *gin.Context) {
 		token, err := auth.ParseToken(strings.Split(c.GetHeader("Authorization"), " ")[1], mySigningKey)
@@ -29,6 +31,7 @@ func DeleteFileHandler() gin.HandlerFunc {
 	return fn
 }
 
+// DownloadFileHandler sends a request to download the user's file
 func DownloadFileHandler() gin.HandlerFunc {
 	fn := func(c *gin.Context) {
 		token, err := auth.ParseToken(strings.Split(c.GetHeader("Authorization"), " ")[1], mySigningKey)
@@ -46,6 +49,7 @@ func DownloadFileHandler() gin.HandlerFunc {
 	return fn
 }
 
+// ListFilesHandler sends a request for a list of user files
 func ListFilesHandler() gin.HandlerFunc {
 	fn := func(c *gin.Context) {
 		token, err := auth.ParseToken(strings.Split(c.GetHeader("Authorization"), " ")[1], mySigningKey)
@@ -68,6 +72,7 @@ func ListFilesHandler() gin.HandlerFunc {
 	return fn
 }
 
+// UploadFileHandler sends a request to download the user's file
 func UploadFileHandler() gin.HandlerFunc {
 	fn := func(c *gin.Context) {
 		file, header, err := c.Request.FormFile("file")

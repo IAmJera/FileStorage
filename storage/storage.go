@@ -1,8 +1,7 @@
+// Package storage defines the functions that use the database and cache
 package storage
 
 import (
-	"FileStorage/app/general"
-	"context"
 	"fmt"
 	"github.com/bradfitz/gomemcache/memcache"
 	"log"
@@ -10,11 +9,13 @@ import (
 
 var storage = InitStorages()
 
+// GetUser takes the login and returns the password hash
 func GetUser(login string) (string, error) {
 	passwd, err := getFromCache(login)
 	if err != nil {
 		passwd, err = getFromDB(login)
 		if err != nil {
+			log.Printf("GetUser:getFromDB: %s", err)
 			return "", err
 		}
 	}
@@ -33,41 +34,23 @@ func getFromCache(login string) (string, error) {
 }
 
 func getFromDB(login string) (string, error) {
-	rows, err := storage.MySQL.Query("SELECT * FROM `users` WHERE `login` = ?", login)
-	if err != nil {
-		log.Printf("getFromDB:Query: %s", err)
-		return "", err
-	}
-	defer general.CloseFile(rows)
-	if err = rows.Err(); err != nil {
-		log.Printf("getFromDB:Err: %s", err)
-		return "", err
-	}
-
-	var username, password string
-	if rows.Next() {
-		if err = rows.Scan(&username, &password); err != nil {
-			log.Printf("getFromDB:Next: %s", err)
-			return "", err
-		}
-	}
-	if err = cacheUser(username, password); err != nil {
-		log.Printf("getFromDB:cacheUser: %s", err)
+	var password string
+	query := "SELECT password FROM `users` WHERE login = ?"
+	if err := storage.MySQL.QueryRow(query, login).Scan(&password); err != nil {
 		return "", err
 	}
 	return password, nil
 }
 
 func cacheUser(login, password string) error {
-	if err := storage.Cache.Set(&memcache.Item{Key: "user_" + login, Value: []byte(password)}); err != nil {
-		return err
-	}
-	return nil
+	err := storage.Cache.Set(&memcache.Item{Key: "user_" + login, Value: []byte(password)})
+	return err
 }
 
+// SetUser writes user data to the database
 func SetUser(login, password string) error {
 	query := "INSERT INTO `users` (`login`, `password`) VALUES (?, ?)"
-	if _, err := storage.MySQL.ExecContext(context.Background(), query, login, password); err != nil {
+	if _, err := storage.MySQL.Exec(query, login, password); err != nil {
 		log.Printf("SetUser:Query: %s", err)
 		return fmt.Errorf("impossible insert record: %s", err)
 	}

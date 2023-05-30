@@ -1,3 +1,4 @@
+// Package auth defines the functions responsible for auth
 package auth
 
 import (
@@ -12,8 +13,10 @@ import (
 	"strings"
 )
 
-var InvalidToken = errors.New("invalid token")
+// ErrInvalidToken defines the error of the invalid token
+var ErrInvalidToken = errors.New("invalid token")
 
+// Middleware verifies the token and authorizes the user
 func Middleware() gin.HandlerFunc {
 	fn := func(c *gin.Context) {
 		header := c.GetHeader("Authorization")
@@ -32,7 +35,7 @@ func Middleware() gin.HandlerFunc {
 
 		if _, err := ParseToken(headerPart[1], []byte(os.Getenv("SIGNINGKEY"))); err != nil {
 			status := http.StatusBadRequest
-			if err == InvalidToken {
+			if err == ErrInvalidToken {
 				status = http.StatusUnauthorized
 			}
 			c.AbortWithStatus(status)
@@ -42,8 +45,9 @@ func Middleware() gin.HandlerFunc {
 	return fn
 }
 
+// ParseToken parses the token and returns the fields of the custom structure
 func ParseToken(accessToken string, key []byte) ([]string, error) {
-	token, err := jwt.ParseWithClaims(accessToken, &account.User{}, func(token *jwt.Token) (interface{}, error) {
+	token, err := jwt.ParseWithClaims(accessToken, &user.User{}, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signin method: %v", token.Header["alg"])
 		}
@@ -53,8 +57,8 @@ func ParseToken(accessToken string, key []byte) ([]string, error) {
 		return []string{}, err
 	}
 
-	if claims, ok := token.Claims.(*account.User); ok && token.Valid {
+	if claims, ok := token.Claims.(*user.User); ok && token.Valid {
 		return []string{claims.Login, claims.Role}, nil
 	}
-	return []string{}, InvalidToken
+	return []string{}, ErrInvalidToken
 }
