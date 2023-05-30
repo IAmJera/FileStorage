@@ -18,7 +18,7 @@ type User struct {
 	jwt.StandardClaims
 	Login    string `json:"login"`
 	Password string `json:"password"`
-	Role     string
+	Role     string //Not used. For the future
 }
 
 var (

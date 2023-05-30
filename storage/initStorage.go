@@ -18,16 +18,16 @@ type Storage struct {
 
 // InitStorages initializes all storages and returns the structure with them
 func InitStorages() Storage {
-	strg := Storage{}
-	strg.Cache = memcache.New(os.Getenv("CACHE_ADDRESS"))
+	store := Storage{}
+	store.Cache = memcache.New(os.Getenv("CACHE_ADDRESS"))
 	var err error
-	if strg.MySQL, err = initMySQL(); err != nil {
+	if store.MySQL, err = initMySQL(); err != nil {
 		log.Fatal(err)
 	}
-	if err = prepareDB(strg.MySQL); err != nil {
+	if err = prepareDB(store.MySQL); err != nil {
 		log.Fatal(err)
 	}
-	return strg
+	return store
 }
 
 func initMySQL() (*sql.DB, error) {

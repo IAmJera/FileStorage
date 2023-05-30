@@ -2,19 +2,13 @@
 package auth
 
 import (
-	"FileStorage/user"
-	"errors"
-	"fmt"
+	"FileStorage/app/general"
 	"github.com/gin-gonic/gin"
-	"github.com/golang-jwt/jwt"
 	"log"
 	"net/http"
 	"os"
 	"strings"
 )
-
-// ErrInvalidToken defines the error of the invalid token
-var ErrInvalidToken = errors.New("invalid token")
 
 // Middleware verifies the token and authorizes the user
 func Middleware() gin.HandlerFunc {
@@ -33,9 +27,9 @@ func Middleware() gin.HandlerFunc {
 			return
 		}
 
-		if _, err := ParseToken(headerPart[1], []byte(os.Getenv("SIGNINGKEY"))); err != nil {
+		if _, err := general.ParseToken(headerPart[1], []byte(os.Getenv("SIGNINGKEY"))); err != nil {
 			status := http.StatusBadRequest
-			if err == ErrInvalidToken {
+			if err == general.ErrInvalidToken {
 				status = http.StatusUnauthorized
 			}
 			c.AbortWithStatus(status)
@@ -43,22 +37,4 @@ func Middleware() gin.HandlerFunc {
 		}
 	}
 	return fn
-}
-
-// ParseToken parses the token and returns the fields of the custom structure
-func ParseToken(accessToken string, key []byte) ([]string, error) {
-	token, err := jwt.ParseWithClaims(accessToken, &user.User{}, func(token *jwt.Token) (interface{}, error) {
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, fmt.Errorf("unexpected signin method: %v", token.Header["alg"])
-		}
-		return key, nil
-	})
-	if err != nil {
-		return []string{}, err
-	}
-
-	if claims, ok := token.Claims.(*user.User); ok && token.Valid {
-		return []string{claims.Login, claims.Role}, nil
-	}
-	return []string{}, ErrInvalidToken
 }
