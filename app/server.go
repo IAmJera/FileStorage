@@ -4,12 +4,14 @@ package main
 import (
 	"FileStorage/app/handlers"
 	"FileStorage/auth"
+	"FileStorage/storage"
 	"github.com/gin-gonic/gin"
 	"log"
 )
 
 func main() {
 	gin.SetMode(gin.ReleaseMode)
+	defer storage.Close()
 	r := gin.Default()
 	r.POST("/auth/Sign-In", auth.SignInHandler())
 	r.POST("/auth/Sign-Up", auth.SignUpHandler())

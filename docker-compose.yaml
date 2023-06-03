@@ -1,16 +1,15 @@
 version: '3'
 services:
   db:
-    container_name: mysql_storage
-    image: mysql:latest
+    container_name: postgres_storage
+    image: postgres:latest
     restart: unless-stopped
     env_file:
       - ./config.env
-#    ports:         #for debug
-#      - '3306:3306'
+    ports:         #for debug
+      - '5432:5432'
     environment:
-      MYSQL_DATABASE: storage
-      MYSQL_RANDOM_ROOT_PASSWORD: yes
+      POSTGRES_DB: storage
     networks:
       default:
         ipv4_address: 172.20.0.2
@@ -35,7 +34,8 @@ services:
       default:
         ipv4_address: 172.20.0.4
     environment:
-      MYSQL_ADDRESS: '172.20.0.2:3306'
+      PSQL_ADDRESS: '172.20.0.2'
+      PSQL_PORT: '5432'
       CACHE_ADDRESS: '172.20.0.3:11211'
       BASEDIR: "/data/"
 #    volumes:

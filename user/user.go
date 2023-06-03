@@ -7,7 +7,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt"
 	"log"
-	"net/http"
 	"os"
 	"strings"
 	"time"
@@ -31,7 +30,7 @@ var (
 func (user *User) Exist() (bool, bool) { // isExist, sameHash
 	sameHash := false
 	passwd, err := storage.GetUser(user.Login)
-	if err != nil || passwd == "" {
+	if err != nil {
 		return false, false
 	}
 
@@ -56,7 +55,6 @@ func (user *User) CheckCredentials() bool {
 func (user *User) ParseCredentials(c *gin.Context) bool {
 	if err := c.Request.ParseForm(); err != nil {
 		log.Printf("ParseCredentials: %s", err)
-		c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": err})
 		return false
 	}
 

@@ -3,8 +3,9 @@ package storage
 
 import (
 	"database/sql"
+	"fmt"
 	"github.com/bradfitz/gomemcache/memcache"
-	"github.com/go-sql-driver/mysql"
+	_ "github.com/lib/pq"
 	"log"
 	"os"
 	"time"
@@ -13,7 +14,7 @@ import (
 // Storage stores the cache and database fields
 type Storage struct {
 	Cache *memcache.Client
-	MySQL *sql.DB
+	PSQL  *sql.DB
 }
 
 // InitStorages initializes all storages and returns the structure with them
@@ -21,28 +22,24 @@ func InitStorages() Storage {
 	store := Storage{}
 	store.Cache = memcache.New(os.Getenv("CACHE_ADDRESS"))
 	var err error
-	if store.MySQL, err = initMySQL(); err != nil {
+	if store.PSQL, err = initPSQL(); err != nil {
 		log.Fatal(err)
 	}
-	if err = prepareDB(store.MySQL); err != nil {
+	if err = prepareDB(store.PSQL); err != nil {
 		log.Fatal(err)
 	}
 	return store
 }
 
-func initMySQL() (*sql.DB, error) {
-	addr := os.Getenv("MYSQL_ADDRESS")
-	login := os.Getenv("MYSQL_USER")
-	passwd := os.Getenv("MYSQL_PASSWORD")
-	auth := mysql.Config{
-		User:                 login,
-		Passwd:               passwd,
-		Net:                  "tcp",
-		Addr:                 addr,
-		DBName:               "storage",
-		AllowNativePasswords: true,
-	}
-	db, err := sql.Open("mysql", auth.FormatDSN())
+func initPSQL() (*sql.DB, error) {
+	addr := os.Getenv("PSQL_ADDRESS")
+	port := os.Getenv("PSQL_PORT")
+	login := os.Getenv("POSTGRES_USER")
+	passwd := os.Getenv("POSTGRES_PASSWORD")
+	connStr := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=storage sslmode=disable",
+		addr, port, login, passwd)
+
+	db, err := sql.Open("postgres", connStr)
 	if err != nil {
 		return nil, err
 	}
@@ -63,9 +60,10 @@ func prepareDB(db *sql.DB) error {
 		return nil
 	}
 
-	query := "CREATE TABLE `users` ( `login` varchar(30), `password` varchar(64));"
-	if _, err := db.Exec(query); err != nil {
-		if err.Error() != "Error 1050 (42S01): Table 'users' already exists" {
+	query := "CREATE TABLE users ( login VARCHAR(30) UNIQUE NOT NULL, password VARCHAR (64) NOT NULL);"
+	if _, err := db.Query(query); err != nil {
+		log.Printf("prepareDB:Query: %s", err)
+		if err.Error() != "pq: relation \"users\" already exists" {
 			return err
 		}
 	}
@@ -73,8 +71,9 @@ func prepareDB(db *sql.DB) error {
 }
 
 func tableExist(db *sql.DB) (bool, error) {
-	if _, err := db.Query("SELECT * FROM `users`;"); err != nil {
-		if err.Error() == "Error 1146 (42S02): Table 'storage.users' doesn't exist" {
+	if _, err := db.Query("SELECT * FROM users;"); err != nil {
+		log.Printf("tableExist:Query: %s", err)
+		if err.Error() == "pq: relation \"users\" does not exist" {
 			return false, nil
 		}
 		return false, err

@@ -8,6 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"os"
+	"strings"
 )
 
 // SignUpHandler registers the user by writing his data to the database
@@ -15,19 +16,24 @@ func SignUpHandler() gin.HandlerFunc {
 	fn := func(c *gin.Context) {
 		var usr user.User
 		if ok := usr.ParseCredentials(c); !ok {
+			c.AbortWithStatus(http.StatusBadRequest)
 			return
 		}
 
-		isExist, _ := usr.Exist()
-		if isExist {
-			c.IndentedJSON(http.StatusOK, gin.H{"error": "user already exist"})
-			return
-		}
+		//isExist, _ := usr.Exist()
+		//if isExist {
+		//	c.IndentedJSON(http.StatusOK, gin.H{"error": "user already exist"})
+		//	return
+		//}
 		if ok := usr.CheckCredentials(); !ok {
 			c.IndentedJSON(http.StatusOK, gin.H{"error": "credentials does not meet requirements"})
 			return
 		}
 		if err := storage.SetUser(usr.Login, general.Hash(usr.Password)); err != nil {
+			if strings.Contains(err.Error(), "duplicate key value violates unique constraint \"users_login_key\"") {
+				c.IndentedJSON(http.StatusOK, gin.H{"error": "user already exist"})
+				return
+			}
 			c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": err})
 			return
 		}
