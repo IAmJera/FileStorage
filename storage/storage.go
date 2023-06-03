@@ -23,14 +23,14 @@ func GetUser(login string) (string, error) {
 }
 
 func getFromCache(login string) (string, error) {
-	res, err := storage.Cache.Get("user_" + login)
+	password, err := storage.Cache.Get("user_" + login)
 	if err != nil {
 		if err.Error() != "memcache: cache miss" {
 			log.Printf("getFromCache:%s", err)
 		}
 		return "", err
 	}
-	return string(res.Value), nil
+	return string(password.Value), nil
 }
 
 func getFromDB(login string) (string, error) {

@@ -1,8 +1,9 @@
 // Package app determines the handlers of the application
-package app
+package handlers
 
 import (
 	"FileStorage/app/general"
+	"FileStorage/auth"
 	"github.com/gin-gonic/gin"
 	"io"
 	"mime/multipart"
@@ -16,7 +17,7 @@ var mySigningKey = []byte(os.Getenv("SIGNINGKEY"))
 // DeleteFileHandler sends a request to delete the user's file
 func DeleteFileHandler() gin.HandlerFunc {
 	fn := func(c *gin.Context) {
-		token, err := general.ParseToken(strings.Split(c.GetHeader("Authorization"), " ")[1], mySigningKey)
+		token, err := auth.ParseToken(strings.Split(c.GetHeader("Authorization"), " ")[1], &mySigningKey)
 		if err != nil {
 			c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": err})
 			return
@@ -33,7 +34,7 @@ func DeleteFileHandler() gin.HandlerFunc {
 // DownloadFileHandler sends a request to download the user's file
 func DownloadFileHandler() gin.HandlerFunc {
 	fn := func(c *gin.Context) {
-		token, err := general.ParseToken(strings.Split(c.GetHeader("Authorization"), " ")[1], mySigningKey)
+		token, err := auth.ParseToken(strings.Split(c.GetHeader("Authorization"), " ")[1], &mySigningKey)
 		if err != nil {
 			c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": err})
 			return
@@ -51,7 +52,7 @@ func DownloadFileHandler() gin.HandlerFunc {
 // ListFilesHandler sends a request for a list of user files
 func ListFilesHandler() gin.HandlerFunc {
 	fn := func(c *gin.Context) {
-		token, err := general.ParseToken(strings.Split(c.GetHeader("Authorization"), " ")[1], mySigningKey)
+		token, err := auth.ParseToken(strings.Split(c.GetHeader("Authorization"), " ")[1], &mySigningKey)
 		if err != nil {
 			c.IndentedJSON(http.StatusInternalServerError, gin.H{"message": err})
 			return
@@ -90,7 +91,7 @@ func UploadFileHandler() gin.HandlerFunc {
 }
 
 func writeFile(c *gin.Context, file multipart.File, filename string) error {
-	token, err := general.ParseToken(strings.Split(c.GetHeader("Authorization"), " ")[1], mySigningKey)
+	token, err := auth.ParseToken(strings.Split(c.GetHeader("Authorization"), " ")[1], &mySigningKey)
 	out, err := os.Create(os.Getenv("BASEDIR") + token[0] + "/" + filename)
 	if err != nil {
 		return err
