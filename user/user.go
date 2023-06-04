@@ -27,9 +27,9 @@ var (
 )
 
 // Exist checks if a user with this name exists and if their password hashes are similar
-func (user *User) Exist() (bool, bool) { // isExist, sameHash
+func (user *User) Exist(storages storage.Storage) (bool, bool) { // isExist, sameHash
 	sameHash := false
-	passwd, err := storage.GetUser(user.Login)
+	passwd, err := storage.GetUser(storages, user.Login)
 	if err != nil {
 		return false, false
 	}

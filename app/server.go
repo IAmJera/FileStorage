@@ -10,11 +10,12 @@ import (
 )
 
 func main() {
+	storages := storage.InitStorages()
 	gin.SetMode(gin.ReleaseMode)
-	defer storage.Close()
+	defer storage.Close(storages)
 	r := gin.Default()
-	r.POST("/auth/Sign-In", auth.SignInHandler())
-	r.POST("/auth/Sign-Up", auth.SignUpHandler())
+	r.POST("/auth/Sign-In", auth.SignInHandler(storages))
+	r.POST("/auth/Sign-Up", auth.SignUpHandler(storages))
 	r.POST("/app/Upload", auth.Middleware(), handlers.UploadFileHandler())
 	r.POST("/app/ListFiles", auth.Middleware(), handlers.ListFilesHandler())
 	r.GET("/app/Delete/:file", auth.Middleware(), handlers.DeleteFileHandler())

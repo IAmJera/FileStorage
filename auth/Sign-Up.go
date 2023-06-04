@@ -12,7 +12,7 @@ import (
 )
 
 // SignUpHandler registers the user by writing his data to the database
-func SignUpHandler() gin.HandlerFunc {
+func SignUpHandler(storages storage.Storage) gin.HandlerFunc {
 	fn := func(c *gin.Context) {
 		var usr user.User
 		if ok := usr.ParseCredentials(c); !ok {
@@ -20,16 +20,11 @@ func SignUpHandler() gin.HandlerFunc {
 			return
 		}
 
-		//isExist, _ := usr.Exist()
-		//if isExist {
-		//	c.IndentedJSON(http.StatusOK, gin.H{"error": "user already exist"})
-		//	return
-		//}
 		if ok := usr.CheckCredentials(); !ok {
 			c.IndentedJSON(http.StatusOK, gin.H{"error": "credentials does not meet requirements"})
 			return
 		}
-		if err := storage.SetUser(usr.Login, general.Hash(usr.Password)); err != nil {
+		if err := storage.SetUser(storages, usr.Login, general.Hash(usr.Password)); err != nil {
 			if strings.Contains(err.Error(), "duplicate key value violates unique constraint \"users_login_key\"") {
 				c.IndentedJSON(http.StatusOK, gin.H{"error": "user already exist"})
 				return

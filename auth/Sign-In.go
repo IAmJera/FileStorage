@@ -3,13 +3,14 @@ package auth
 
 import (
 	"FileStorage/app/general"
+	"FileStorage/storage"
 	"FileStorage/user"
 	"github.com/gin-gonic/gin"
 	"net/http"
 )
 
 // SignInHandler authenticate the user and returns a jwt token to him
-func SignInHandler() gin.HandlerFunc {
+func SignInHandler(storages storage.Storage) gin.HandlerFunc {
 	fn := func(c *gin.Context) {
 		var usr user.User
 		if ok := usr.ParseCredentials(c); !ok {
@@ -17,7 +18,7 @@ func SignInHandler() gin.HandlerFunc {
 			return
 		}
 
-		isExist, sameHash := usr.Exist()
+		isExist, sameHash := usr.Exist(storages)
 		if !isExist {
 			c.IndentedJSON(http.StatusOK, gin.H{"error": "user does not exist"})
 			return
