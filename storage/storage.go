@@ -2,6 +2,7 @@
 package storage
 
 import (
+	"fmt"
 	"github.com/bradfitz/gomemcache/memcache"
 	"log"
 	"strings"
@@ -9,9 +10,9 @@ import (
 
 // GetUser takes the login and returns the password hash
 func GetUser(storages Storage, login string) (string, error) {
-	passwd, err := getFromCache(storages, login)
+	passwd, err := GetFromCache(storages, login)
 	if err != nil {
-		passwd, err = getFromDB(storages, login)
+		passwd, err = GetFromDB(false, storages, login)
 		if err != nil {
 			log.Printf("GetUser:getFromDB: %s", err)
 			return "", err
@@ -24,7 +25,7 @@ func GetUser(storages Storage, login string) (string, error) {
 	return passwd, nil
 }
 
-func getFromCache(storages Storage, login string) (string, error) {
+func GetFromCache(storages Storage, login string) (string, error) {
 	password, err := storages.Cache.Get("user_" + login)
 	if err != nil {
 		if err.Error() != "memcache: cache miss" {
@@ -35,11 +36,17 @@ func getFromCache(storages Storage, login string) (string, error) {
 	return string(password.Value), nil
 }
 
-func getFromDB(storages Storage, login string) (string, error) {
+func GetFromDB(test bool, storages Storage, login string) (string, error) {
 	var password string
-	query := "SELECT password FROM users WHERE login = $1"
-	if err := storages.PSQL.QueryRow(query, login).Scan(&password); err != nil {
-		return "", err
+	if test {
+		password = strings.Split(login, " ")[0]
+		err := fmt.Errorf(strings.Split(login, " ")[1])
+		return password, err
+	} else {
+		query := "SELECT password FROM users WHERE login = $1"
+		if err := storages.PSQL.QueryRow(query, login).Scan(&password); err != nil {
+			return "", err
+		}
 	}
 	return password, nil
 }

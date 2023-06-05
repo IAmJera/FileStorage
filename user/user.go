@@ -22,16 +22,22 @@ type User struct {
 
 var (
 	loginMin = 4
-	loginMax = 30
+	loginMax = 20
 	passMin  = 10
 )
 
 // Exist checks if a user with this name exists and if their password hashes are similar
-func (user *User) Exist(storages storage.Storage) (bool, bool) { // isExist, sameHash
+func (user *User) Exist(test bool, storages storage.Storage) (bool, bool) { // isExist, sameHash
+	var passwd string
+	var err error
 	sameHash := false
-	passwd, err := storage.GetUser(storages, user.Login)
-	if err != nil {
-		return false, false
+	if test {
+		passwd = "qwerty"
+	} else {
+		passwd, err = storage.GetUser(storages, user.Login)
+		if err != nil {
+			return false, false
+		}
 	}
 
 	if passwd == general.Hash(user.Password) {
@@ -42,7 +48,7 @@ func (user *User) Exist(storages storage.Storage) (bool, bool) { // isExist, sam
 
 // CheckCredentials Checks whether the user data corresponds to the requirements
 func (user *User) CheckCredentials() bool {
-	if len(user.Login) < loginMin && len(user.Login) > loginMax {
+	if len(user.Login) < loginMin || len(user.Login) > loginMax {
 		return false
 	}
 	if len(user.Password) < passMin {

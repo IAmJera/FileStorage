@@ -18,7 +18,7 @@ func SignInHandler(storages storage.Storage) gin.HandlerFunc {
 			return
 		}
 
-		isExist, sameHash := usr.Exist(storages)
+		isExist, sameHash := usr.Exist(false, storages)
 		if !isExist {
 			c.IndentedJSON(http.StatusOK, gin.H{"error": "user does not exist"})
 			return

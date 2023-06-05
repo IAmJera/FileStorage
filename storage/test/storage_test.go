@@ -8,13 +8,27 @@ import (
 	"testing"
 )
 
-type testCache struct{}
+type testCache struct {
+	status string
+}
 
-func (tc *testCache) Get(key string) (*memcache.Item, error) {
-	return &memcache.Item{Key: key}, nil
+func (tc *testCache) Get(_ string) (*memcache.Item, error) {
+	switch tc.status {
+	case "miss":
+		return nil, fmt.Errorf("memcache: cache miss")
+	case "nil":
+		return &memcache.Item{Value: []byte("password")}, nil
+	}
+	return nil, nil
 }
 
 func (tc *testCache) Set(_ *memcache.Item) error {
+	switch tc.status {
+	case "error":
+		return fmt.Errorf("error")
+	case "nil":
+		return nil
+	}
 	return nil
 }
 
@@ -40,7 +54,7 @@ func (td *testDB) Query(query string, _ ...any) (*sql.Rows, error) {
 	return nil, nil
 }
 
-func (td *testDB) QueryRow(_ string, _ ...any) *sql.Row {
+func (td *testDB) QueryRow(query string, args ...any) *sql.Row {
 	return nil
 }
 
@@ -66,11 +80,11 @@ func TestTableExist(t *testing.T) {
 		gotExists, gotErr := storage.TableExist(tt.args.db)
 		if gotErr != nil {
 			if gotErr.Error() != tt.wantErrStr.Error() {
-				t.Errorf("%s: tableExist() gotErrStr = %v, want %v", tt.name, gotErr, tt.wantErrStr)
+				t.Errorf("%s: TableExist() gotErrStr = %v, want %v", tt.name, gotErr, tt.wantErrStr)
 			}
 		}
 		if gotExists != tt.wantExists {
-			t.Errorf("%s: tableExist() gotExists = %v, want %v", tt.name, gotExists, tt.wantExists)
+			t.Errorf("%s: TableExist() gotExists = %v, want %v", tt.name, gotExists, tt.wantExists)
 		}
 	}
 }
@@ -92,31 +106,76 @@ func TestCreateTable(t *testing.T) {
 		gotErr := storage.CreateTable(tt.args.db)
 		if gotErr != nil {
 			if gotErr.Error() != tt.wantErr.Error() {
-				t.Errorf("%s: tableExist() gotErrStr = %v, want %v", tt.name, gotErr, tt.wantErr)
+				t.Errorf("%s: CreateTable() gotErrStr = %v, want %v", tt.name, gotErr, tt.wantErr)
 			}
 		}
 	}
 }
 
-func TestSetUser(t *testing.T) { //TODO: uncompleted test
-	storages := storage.Storage{&testCache{}, &testDB{}}
+func TestSetUser(t *testing.T) {
 	tests := []struct {
-		name     string
-		login    string
-		password string
-		wantErr  error
+		name    string
+		strg    storage.Storage
+		wantErr error
 	}{
-		{name: "no error", login: "test", password: "test", wantErr: nil},
-		{name: "exist", wantErr: nil},
-		{name: "other", wantErr: fmt.Errorf("error")},
+		{
+			name:    "duplicate",
+			strg:    storage.Storage{Cache: &testCache{}, PSQL: &testDB{status: "duplicate"}},
+			wantErr: nil},
+		{
+			name:    "other",
+			strg:    storage.Storage{Cache: &testCache{}, PSQL: &testDB{status: "other"}},
+			wantErr: fmt.Errorf("error")},
+		{
+			name:    "cache_error",
+			strg:    storage.Storage{Cache: &testCache{status: "error"}, PSQL: &testDB{"no error"}},
+			wantErr: fmt.Errorf("error")},
+		{
+			name:    "cache_nil",
+			strg:    storage.Storage{Cache: &testCache{status: "nil"}, PSQL: &testDB{status: "no error"}},
+			wantErr: nil,
+		},
 	}
 	for _, tt := range tests {
-		gotErr := storage.SetUser(storages, tt.login, tt.password)
+		gotErr := storage.SetUser(tt.strg, "login", "password")
 		if gotErr != nil {
 			if gotErr.Error() != tt.wantErr.Error() {
-				t.Errorf("%s: tableExist() gotErrStr = %v, want %v", tt.name, gotErr, tt.wantErr)
+				t.Errorf("%s: SetUser() gotErrStr = %v, want %v", tt.name, gotErr, tt.wantErr)
 			}
 		}
 	}
-
 }
+
+func TestGetFromCache(t *testing.T) {
+	tests := []struct {
+		name    string
+		strg    storage.Storage
+		wantErr error
+		wantRes string
+	}{
+		{
+			name:    "cache_error",
+			strg:    storage.Storage{Cache: &testCache{status: "miss"}, PSQL: &testDB{}},
+			wantErr: fmt.Errorf("memcache: cache miss"),
+			wantRes: ""},
+		{
+			name:    "cache_nil",
+			strg:    storage.Storage{Cache: &testCache{status: "nil"}, PSQL: &testDB{}},
+			wantErr: nil,
+			wantRes: "password"},
+	}
+	for _, tt := range tests {
+		gotRes, gotErr := storage.GetFromCache(tt.strg, "login")
+		if gotErr != nil {
+			if gotErr.Error() != tt.wantErr.Error() {
+				t.Errorf("%s: GetFromCache() gotErr = %v, want %v", tt.name, gotErr, tt.wantErr)
+			}
+		} else if gotRes != "password" {
+			t.Errorf("%s: GetFromCache() gotRes = %v, want %v", tt.name, gotRes, tt.wantRes)
+		}
+	}
+}
+
+//TODO: GetFromDB
+
+//TODO: GetUser
