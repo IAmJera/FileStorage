@@ -2,9 +2,10 @@
 package auth
 
 import (
+	"FileStorage/api"
 	"FileStorage/app/general"
-	"FileStorage/storage"
 	"FileStorage/user"
+	"context"
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"os"
@@ -12,7 +13,7 @@ import (
 )
 
 // SignUpHandler registers the user by writing his data to the database
-func SignUpHandler() gin.HandlerFunc {
+func SignUpHandler(conn api.AuthClient) gin.HandlerFunc {
 	fn := func(c *gin.Context) {
 		var usr user.User
 		if ok := usr.ParseCredentials(c); !ok {
@@ -20,21 +21,18 @@ func SignUpHandler() gin.HandlerFunc {
 			return
 		}
 
-		//isExist, _ := usr.Exist()
-		//if isExist {
-		//	c.IndentedJSON(http.StatusOK, gin.H{"error": "user already exist"})
-		//	return
-		//}
 		if ok := usr.CheckCredentials(); !ok {
 			c.IndentedJSON(http.StatusOK, gin.H{"error": "credentials does not meet requirements"})
 			return
 		}
-		if err := storage.SetUser(usr.Login, general.Hash(usr.Password)); err != nil {
-			if strings.Contains(err.Error(), "duplicate key value violates unique constraint \"users_login_key\"") {
+
+		u := api.User{Login: usr.Login, Password: general.Hash(usr.Password), Role: usr.Role}
+		if _, err := conn.AddUser(context.Background(), &u); err != nil {
+			if strings.Contains(err.Error(), "user already exist") {
 				c.IndentedJSON(http.StatusOK, gin.H{"error": "user already exist"})
 				return
 			}
-			c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": err})
+			c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": strings.Split(err.Error(), "= ")[2]})
 			return
 		}
 

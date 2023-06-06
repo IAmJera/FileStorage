@@ -1,4 +1,4 @@
-// Package app determines the handlers of the application
+// Package handlers determines the handlers of the application
 package handlers
 
 import (
