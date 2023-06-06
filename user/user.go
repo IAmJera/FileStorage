@@ -34,7 +34,7 @@ func (user *User) Exist(test bool, storages storage.Storage) (bool, bool) { // i
 	if test {
 		passwd = "qwerty"
 	} else {
-		passwd, err = storage.GetUser(storages, user.Login)
+		passwd, err = storage.GetUser(test, storages, user.Login)
 		if err != nil {
 			return false, false
 		}

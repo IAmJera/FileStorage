@@ -9,10 +9,10 @@ import (
 )
 
 // GetUser takes the login and returns the password hash
-func GetUser(storages Storage, login string) (string, error) {
+func GetUser(test bool, storages Storage, login string) (string, error) {
 	passwd, err := GetFromCache(storages, login)
 	if err != nil {
-		passwd, err = GetFromDB(false, storages, login)
+		passwd, err = GetFromDB(test, storages, login)
 		if err != nil {
 			log.Printf("GetUser:getFromDB: %s", err)
 			return "", err
@@ -38,17 +38,21 @@ func GetFromCache(storages Storage, login string) (string, error) {
 
 func GetFromDB(test bool, storages Storage, login string) (string, error) {
 	var password string
+	var err error
 	if test {
 		password = strings.Split(login, " ")[0]
-		err := fmt.Errorf(strings.Split(login, " ")[1])
-		return password, err
+		if strings.Split(login, " ")[1] == "nil" {
+			err = nil
+		} else {
+			err = fmt.Errorf("error")
+		}
 	} else {
 		query := "SELECT password FROM users WHERE login = $1"
-		if err := storages.PSQL.QueryRow(query, login).Scan(&password); err != nil {
+		if err = storages.PSQL.QueryRow(query, login).Scan(&password); err != nil {
 			return "", err
 		}
 	}
-	return password, nil
+	return password, err
 }
 
 // SetUser writes user data to the database

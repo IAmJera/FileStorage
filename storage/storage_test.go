@@ -26,6 +26,8 @@ func (tc *testCache) Set(_ *memcache.Item) error {
 	switch tc.status {
 	case "error":
 		return fmt.Errorf("error")
+	case "miss":
+		return fmt.Errorf("error")
 	case "nil":
 		return nil
 	}
@@ -54,7 +56,7 @@ func (td *testDB) Query(query string, _ ...any) (*sql.Rows, error) {
 	return nil, nil
 }
 
-func (td *testDB) QueryRow(query string, args ...any) *sql.Row {
+func (td *testDB) QueryRow(_ string, _ ...any) *sql.Row {
 	return nil
 }
 
@@ -176,6 +178,73 @@ func TestGetFromCache(t *testing.T) {
 	}
 }
 
-//TODO: GetFromDB
+func TestGetFromDB(t *testing.T) {
+	tests := []struct {
+		name    string
+		strg    storage.Storage
+		login   string
+		wantErr error
+		wantRes string
+	}{
+		{
+			name:    "db_error",
+			strg:    storage.Storage{},
+			login:   "password error",
+			wantErr: fmt.Errorf("error"),
+			wantRes: "password"},
+		{
+			name:    "db_nil",
+			strg:    storage.Storage{},
+			login:   "password nil",
+			wantErr: nil,
+			wantRes: "password"},
+	}
+	for _, tt := range tests {
+		gotRes, gotErr := storage.GetFromDB(true, tt.strg, tt.login)
+		if gotErr != nil {
+			if gotErr.Error() != tt.wantErr.Error() {
+				t.Errorf("%s: GetFromDB() gotErr = %v, want %v", tt.name, gotErr, tt.wantErr)
+			}
+		} else if gotRes != "password" {
+			t.Errorf("%s: GetFromDB() gotRes = %v, want %v", tt.name, gotRes, tt.wantRes)
+		}
+	}
+}
 
-//TODO: GetUser
+func TestGetUser(t *testing.T) {
+	tests := []struct {
+		name    string
+		strg    storage.Storage
+		login   string
+		wantErr error
+		wantRes string
+	}{
+		{
+			name:    "cache_nil",
+			strg:    storage.Storage{Cache: &testCache{status: "nil"}, PSQL: &testDB{}},
+			wantErr: nil,
+			wantRes: "password"},
+		{
+			name:    "db_error",
+			strg:    storage.Storage{Cache: &testCache{status: "miss"}, PSQL: &testDB{}},
+			login:   "password error",
+			wantErr: fmt.Errorf("error"),
+			wantRes: ""},
+		{
+			name:    "db_nil",
+			strg:    storage.Storage{Cache: &testCache{status: "miss"}, PSQL: &testDB{}},
+			login:   " nil",
+			wantErr: fmt.Errorf("error"),
+			wantRes: ""},
+	}
+	for _, tt := range tests {
+		gotRes, gotErr := storage.GetUser(true, tt.strg, tt.login)
+		if gotErr != nil {
+			if gotErr.Error() != tt.wantErr.Error() {
+				t.Errorf("%s: GetUser() gotErr = %v, want %v", tt.name, gotErr, tt.wantErr)
+			}
+		} else if gotRes != "password" {
+			t.Errorf("%s: GetUser() gotRes = %v, want %v", tt.name, gotRes, tt.wantRes)
+		}
+	}
+}
