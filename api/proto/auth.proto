@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+package api;
+option go_package = "pkg/api";
+
+service Auth {
+  rpc AddUser(User) returns (Response) {}
+  rpc SignIn(User) returns (Token) {}
+}
+
+message User {
+  string login = 2;
+  string password = 3;
+  string Role = 4;
+}
+
+message Response {}
+
+message Token {
+  string token = 1;
+}

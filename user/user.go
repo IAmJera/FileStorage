@@ -2,8 +2,6 @@
 package user
 
 import (
-	"FileStorage/app/general"
-	"FileStorage/storage"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt"
 	"log"
@@ -25,26 +23,6 @@ var (
 	loginMax = 20
 	passMin  = 10
 )
-
-// Exist checks if a user with this name exists and if their password hashes are similar
-func (user *User) Exist(test bool, storages storage.Storage) (bool, bool) { // isExist, sameHash
-	var passwd string
-	var err error
-	sameHash := false
-	if test {
-		passwd = "qwerty"
-	} else {
-		passwd, err = storage.GetUser(test, storages, user.Login)
-		if err != nil {
-			return false, false
-		}
-	}
-
-	if passwd == general.Hash(user.Password) {
-		sameHash = true
-	}
-	return true, sameHash
-}
 
 // CheckCredentials Checks whether the user data corresponds to the requirements
 func (user *User) CheckCredentials() bool {

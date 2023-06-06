@@ -2,20 +2,27 @@
 package main
 
 import (
+	"FileStorage/api"
 	"FileStorage/app/handlers"
 	"FileStorage/auth"
-	"FileStorage/storage"
 	"github.com/gin-gonic/gin"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 	"log"
+	"os"
 )
 
 func main() {
-	storages := storage.InitStorages()
+	conn, err := grpc.Dial(os.Getenv("GRPC_SERVER"), grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		log.Fatal(err)
+	}
+	c := api.NewAuthClient(conn)
+
 	gin.SetMode(gin.ReleaseMode)
-	defer storage.Close(storages)
 	r := gin.Default()
-	r.POST("/auth/Sign-In", auth.SignInHandler(storages))
-	r.POST("/auth/Sign-Up", auth.SignUpHandler(storages))
+	r.POST("/auth/Sign-In", auth.SignInHandler(c))
+	r.POST("/auth/Sign-Up", auth.SignUpHandler(c))
 	r.POST("/app/Upload", auth.Middleware(), handlers.UploadFileHandler())
 	r.POST("/app/ListFiles", auth.Middleware(), handlers.ListFilesHandler())
 	r.GET("/app/Delete/:file", auth.Middleware(), handlers.DeleteFileHandler())
