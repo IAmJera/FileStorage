@@ -11,4 +11,4 @@ services:
     environment:
       BASEDIR: "/data/"
     volumes:
-      - ./storage/data:/data
+      - ./data:/data

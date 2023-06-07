@@ -28,7 +28,7 @@ func main() {
 	r.GET("/app/Delete/:file", auth.Middleware(), handlers.DeleteFileHandler())
 	r.GET("/app/Download/:file", auth.Middleware(), handlers.DownloadFileHandler())
 
-	if err := r.Run(":8080"); err != nil {
+	if err = r.Run(":8080"); err != nil {
 		log.Panicf("error occurred: %s", err)
 	}
 }
