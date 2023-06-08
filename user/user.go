@@ -5,9 +5,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt"
 	"log"
-	"os"
 	"strings"
-	"time"
 )
 
 // User defines user structure
@@ -51,17 +49,4 @@ func (user *User) ParseCredentials(c *gin.Context) bool {
 		}
 	}
 	return true
-}
-
-// SignIn creates and returns a jwt token
-func (user *User) SignIn() (string, error) {
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, &User{
-		StandardClaims: jwt.StandardClaims{
-			ExpiresAt: time.Now().Add(time.Hour * 24).Unix(),
-			IssuedAt:  time.Now().Unix(),
-		},
-		Login: user.Login,
-		Role:  "user",
-	})
-	return token.SignedString([]byte(os.Getenv("SIGNINGKEY")))
 }

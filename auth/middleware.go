@@ -16,10 +16,9 @@ import (
 // ErrInvalidToken defines the error of the invalid token
 var ErrInvalidToken = errors.New("invalid token")
 
-var mySigningKey = []byte(os.Getenv("SIGNINGKEY"))
-
 // Middleware verifies the token and authorizes the user
 func Middleware() gin.HandlerFunc {
+	mySigningKey := []byte(os.Getenv("SIGNINGKEY"))
 	fn := func(c *gin.Context) {
 		header := c.GetHeader("Authorization")
 		if header == "" {
