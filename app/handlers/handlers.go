@@ -16,23 +16,24 @@ import (
 	"time"
 )
 
+// var mySigningKey = []byte(os.Getenv("SIGNING_KEY"))
 var mySigningKey = []byte(os.Getenv("SIGNING_KEY"))
 var counter uint8 = 0
 
 // DeleteObjectHandler sends a request to delete the user's file
-func DeleteObjectHandler(s3 *minio.Client) gin.HandlerFunc {
+func DeleteObjectHandler(s3 general.S3) gin.HandlerFunc {
 	fn := func(c *gin.Context) {
 		token, err := auth.ParseToken(strings.Split(c.GetHeader("Authorization"), " ")[1], &mySigningKey)
 		if err != nil {
 			c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": err})
 			return
 		}
-
 		object := c.PostForm("objectpath")
 		filesList := general.GetS3Objects(s3, token[0], object, true)
 		for _, obj := range filesList {
 			if err = s3.RemoveObject(token[0], obj); err != nil {
-				log.Printf("DeleteUserHandler:RemoveObject: %s", err)
+				c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": err})
+				return
 			}
 		}
 		c.IndentedJSON(http.StatusOK, gin.H{"message": "remove successful"})
@@ -41,7 +42,7 @@ func DeleteObjectHandler(s3 *minio.Client) gin.HandlerFunc {
 }
 
 // DownloadFileHandler sends a request to download the user's file
-func DownloadFileHandler(s3 *minio.Client) gin.HandlerFunc {
+func DownloadFileHandler(s3 general.S3) gin.HandlerFunc {
 	fn := func(c *gin.Context) {
 		token, err := auth.ParseToken(strings.Split(c.GetHeader("Authorization"), " ")[1], &mySigningKey)
 		if err != nil {
@@ -54,6 +55,8 @@ func DownloadFileHandler(s3 *minio.Client) gin.HandlerFunc {
 		object, err := s3.GetObject(token[0], objectPath, minio.GetObjectOptions{})
 		if err != nil {
 			log.Printf("DownloadFileHandler:GetObject: %s", err)
+			c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": err})
+			return
 		}
 		defer general.CloseFile(object)
 
@@ -73,7 +76,7 @@ func DownloadFileHandler(s3 *minio.Client) gin.HandlerFunc {
 }
 
 // CreateDirHandler creates dir or return error
-func CreateDirHandler(s3 *minio.Client) gin.HandlerFunc {
+func CreateDirHandler(s3 general.S3) gin.HandlerFunc {
 	fn := func(c *gin.Context) {
 		token, err := auth.ParseToken(strings.Split(c.GetHeader("Authorization"), " ")[1], &mySigningKey)
 		if err != nil {
@@ -101,7 +104,7 @@ func CreateDirHandler(s3 *minio.Client) gin.HandlerFunc {
 }
 
 // ListFilesHandler sends a request for a list of user files
-func ListFilesHandler(s3 *minio.Client) gin.HandlerFunc {
+func ListFilesHandler(s3 general.S3) gin.HandlerFunc {
 	fn := func(c *gin.Context) {
 		token, err := auth.ParseToken(strings.Split(c.GetHeader("Authorization"), " ")[1], &mySigningKey)
 		if err != nil {
@@ -117,7 +120,7 @@ func ListFilesHandler(s3 *minio.Client) gin.HandlerFunc {
 }
 
 // UploadFileHandler sends a request to download the user's file
-func UploadFileHandler(s3 *minio.Client) gin.HandlerFunc {
+func UploadFileHandler(s3 general.S3) gin.HandlerFunc {
 	fn := func(c *gin.Context) {
 		file, header, err := c.Request.FormFile("file")
 		if err != nil {
@@ -135,7 +138,7 @@ func UploadFileHandler(s3 *minio.Client) gin.HandlerFunc {
 	return fn
 }
 
-func putFile(c *gin.Context, s3 *minio.Client, file multipart.File, filename string) error {
+func putFile(c *gin.Context, s3 general.S3, file multipart.File, filename string) error {
 	token, err := auth.ParseToken(strings.Split(c.GetHeader("Authorization"), " ")[1], &mySigningKey)
 	if err != nil {
 		return err
