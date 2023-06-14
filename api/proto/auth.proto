@@ -3,19 +3,23 @@ syntax = "proto3";
 package api;
 option go_package = "pkg/api";
 
+import "google/protobuf/wrappers.proto";
+
 service Auth {
-  rpc AddUser(User) returns (Response) {}
-  rpc SignIn(User) returns (Token) {}
+  rpc UserExist(User) returns (google.protobuf.BoolValue) {}
+  rpc AddUser(User) returns (google.protobuf.StringValue) {}
+  rpc UpdateUser(User) returns (google.protobuf.StringValue) {}
+  rpc DelUser(User) returns (google.protobuf.StringValue) {}
+  rpc GetToken(User) returns (Token) {}
 }
 
 message User {
-  string login = 2;
-  string password = 3;
-  string Role = 4;
+  string login = 1;
+  string password = 2;
+  string Role = 3;
 }
-
-message Response {}
 
 message Token {
   string token = 1;
+  string error = 2;
 }
