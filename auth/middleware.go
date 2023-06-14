@@ -2,12 +2,13 @@
 package auth
 
 import (
+	"FileStorage/api"
 	"FileStorage/user"
+	"context"
 	"errors"
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt"
-	"log"
 	"net/http"
 	"os"
 	"strings"
@@ -17,31 +18,39 @@ import (
 var ErrInvalidToken = errors.New("invalid token")
 
 // Middleware verifies the token and authorizes the user
-func Middleware() gin.HandlerFunc {
-	mySigningKey := []byte(os.Getenv("SIGNINGKEY"))
+func Middleware(rpc api.AuthClient) gin.HandlerFunc {
+	mySigningKey = []byte(os.Getenv("SIGNING_KEY"))
 	fn := func(c *gin.Context) {
+		status := http.StatusInternalServerError
 		header := c.GetHeader("Authorization")
 		if header == "" {
-			log.Printf("Middleware: empty header")
 			c.AbortWithStatus(http.StatusUnauthorized)
 			return
 		}
 
 		headerPart := strings.Split(header, " ")
 		if len(headerPart) != 2 || headerPart[0] != "Bearer" {
-			log.Printf("Middleware: wrong header")
 			c.AbortWithStatus(http.StatusUnauthorized)
 			return
 		}
 
-		if _, err := ParseToken(headerPart[1], &mySigningKey); err != nil {
-			status := http.StatusBadRequest
+		token, err := ParseToken(headerPart[1], &mySigningKey)
+		if err != nil {
+			status = http.StatusBadRequest
 			if err == ErrInvalidToken {
 				status = http.StatusUnauthorized
 			}
 			c.AbortWithStatus(status)
 			return
 		}
+		resp, _ := rpc.UserExist(context.Background(), &api.User{Login: token[0]})
+		if resp != nil {
+			if resp.Value {
+				return
+			}
+			status = http.StatusUnauthorized
+		}
+		c.AbortWithStatus(status)
 	}
 	return fn
 }
