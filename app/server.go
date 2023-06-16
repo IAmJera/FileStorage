@@ -14,6 +14,7 @@ import (
 )
 
 func main() {
+	var secret = []byte(os.Getenv("SIGNING_KEY"))
 	conn, err := grpc.Dial(os.Getenv("GRPC_SERVER"), grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		log.Fatal(err)
@@ -33,11 +34,11 @@ func main() {
 	r.PUT("/auth/ChangePass", auth.Middleware(rpc), auth.ChangePasswordHandler(rpc))
 	r.DELETE("/auth/DeleteUser", auth.Middleware(rpc), auth.DeleteUserHandler(rpc, s3))
 
-	r.POST("/app/Upload", auth.Middleware(rpc), handlers.UploadFileHandler(s3))
-	r.POST("/app/ListFiles", auth.Middleware(rpc), handlers.ListFilesHandler(s3))
-	r.POST("/app/CreateDir", auth.Middleware(rpc), handlers.CreateDirHandler(s3))
-	r.DELETE("/app/DeleteObject", auth.Middleware(rpc), handlers.DeleteObjectHandler(s3))
-	r.POST("/app/Download", auth.Middleware(rpc), handlers.DownloadFileHandler(s3))
+	r.POST("/app/Upload", auth.Middleware(rpc, &secret), handlers.UploadFileHandler(s3, &secret))
+	r.POST("/app/ListFiles", auth.Middleware(rpc, &secret), handlers.ListFilesHandler(s3, &secret))
+	r.POST("/app/CreateDir", auth.Middleware(rpc, &secret), handlers.CreateDirHandler(s3, &secret))
+	r.DELETE("/app/DeleteObject", auth.Middleware(rpc, &secret), handlers.DeleteObjectHandler(s3, &secret))
+	r.POST("/app/Download", auth.Middleware(rpc, &secret), handlers.DownloadFileHandler(s3, &secret))
 
 	if err = r.Run(":8080"); err != nil {
 		log.Panicf("error occurred: %s", err)

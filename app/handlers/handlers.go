@@ -16,18 +16,17 @@ import (
 	"time"
 )
 
-// var mySigningKey = []byte(os.Getenv("SIGNING_KEY"))
-var mySigningKey = []byte(os.Getenv("SIGNING_KEY"))
 var counter uint8 = 0
 
 // DeleteObjectHandler sends a request to delete the user's file
-func DeleteObjectHandler(s3 general.S3) gin.HandlerFunc {
+func DeleteObjectHandler(s3 general.S3, secret *[]byte) gin.HandlerFunc {
 	fn := func(c *gin.Context) {
-		token, err := auth.ParseToken(strings.Split(c.GetHeader("Authorization"), " ")[1], &mySigningKey)
+		token, err := auth.ParseToken(strings.Split(c.GetHeader("Authorization"), " ")[1], secret)
 		if err != nil {
 			c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": err})
 			return
 		}
+
 		object := c.PostForm("objectpath")
 		filesList := general.GetS3Objects(s3, token[0], object, true)
 		for _, obj := range filesList {
@@ -42,9 +41,9 @@ func DeleteObjectHandler(s3 general.S3) gin.HandlerFunc {
 }
 
 // DownloadFileHandler sends a request to download the user's file
-func DownloadFileHandler(s3 general.S3) gin.HandlerFunc {
+func DownloadFileHandler(s3 general.S3, secret *[]byte) gin.HandlerFunc {
 	fn := func(c *gin.Context) {
-		token, err := auth.ParseToken(strings.Split(c.GetHeader("Authorization"), " ")[1], &mySigningKey)
+		token, err := auth.ParseToken(strings.Split(c.GetHeader("Authorization"), " ")[1], secret)
 		if err != nil {
 			c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": err})
 			return
@@ -76,9 +75,9 @@ func DownloadFileHandler(s3 general.S3) gin.HandlerFunc {
 }
 
 // CreateDirHandler creates dir or return error
-func CreateDirHandler(s3 general.S3) gin.HandlerFunc {
+func CreateDirHandler(s3 general.S3, secret *[]byte) gin.HandlerFunc {
 	fn := func(c *gin.Context) {
-		token, err := auth.ParseToken(strings.Split(c.GetHeader("Authorization"), " ")[1], &mySigningKey)
+		token, err := auth.ParseToken(strings.Split(c.GetHeader("Authorization"), " ")[1], secret)
 		if err != nil {
 			c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": err})
 			return
@@ -104,9 +103,9 @@ func CreateDirHandler(s3 general.S3) gin.HandlerFunc {
 }
 
 // ListFilesHandler sends a request for a list of user files
-func ListFilesHandler(s3 general.S3) gin.HandlerFunc {
+func ListFilesHandler(s3 general.S3, secret *[]byte) gin.HandlerFunc {
 	fn := func(c *gin.Context) {
-		token, err := auth.ParseToken(strings.Split(c.GetHeader("Authorization"), " ")[1], &mySigningKey)
+		token, err := auth.ParseToken(strings.Split(c.GetHeader("Authorization"), " ")[1], secret)
 		if err != nil {
 			c.IndentedJSON(http.StatusInternalServerError, gin.H{"message": err})
 			return
@@ -120,7 +119,7 @@ func ListFilesHandler(s3 general.S3) gin.HandlerFunc {
 }
 
 // UploadFileHandler sends a request to download the user's file
-func UploadFileHandler(s3 general.S3) gin.HandlerFunc {
+func UploadFileHandler(s3 general.S3, secret *[]byte) gin.HandlerFunc {
 	fn := func(c *gin.Context) {
 		file, header, err := c.Request.FormFile("file")
 		if err != nil {
@@ -129,7 +128,7 @@ func UploadFileHandler(s3 general.S3) gin.HandlerFunc {
 		}
 		defer general.CloseFile(file)
 
-		if err = putFile(c, s3, file, header.Filename); err != nil {
+		if err = putFile(c, s3, file, header.Filename, secret); err != nil {
 			c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": err})
 			return
 		}
@@ -138,8 +137,8 @@ func UploadFileHandler(s3 general.S3) gin.HandlerFunc {
 	return fn
 }
 
-func putFile(c *gin.Context, s3 general.S3, file multipart.File, filename string) error {
-	token, err := auth.ParseToken(strings.Split(c.GetHeader("Authorization"), " ")[1], &mySigningKey)
+func putFile(c *gin.Context, s3 general.S3, file multipart.File, filename string, secret *[]byte) error {
+	token, err := auth.ParseToken(strings.Split(c.GetHeader("Authorization"), " ")[1], secret)
 	if err != nil {
 		return err
 	}

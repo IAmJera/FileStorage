@@ -10,7 +10,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt"
 	"net/http"
-	"os"
 	"strings"
 )
 
@@ -18,8 +17,7 @@ import (
 var ErrInvalidToken = errors.New("invalid token")
 
 // Middleware verifies the token and authorizes the user
-func Middleware(rpc api.AuthClient) gin.HandlerFunc {
-	mySigningKey = []byte(os.Getenv("SIGNING_KEY"))
+func Middleware(rpc api.AuthClient, secret *[]byte) gin.HandlerFunc {
 	fn := func(c *gin.Context) {
 		status := http.StatusInternalServerError
 		header := c.GetHeader("Authorization")
@@ -34,7 +32,7 @@ func Middleware(rpc api.AuthClient) gin.HandlerFunc {
 			return
 		}
 
-		token, err := ParseToken(headerPart[1], &mySigningKey)
+		token, err := ParseToken(headerPart[1], secret)
 		if err != nil {
 			status = http.StatusBadRequest
 			if err == ErrInvalidToken {

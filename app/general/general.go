@@ -2,34 +2,12 @@
 package general
 
 import (
-	"context"
 	"encoding/hex"
 	"github.com/minio/minio-go"
 	"golang.org/x/crypto/sha3"
-	"google.golang.org/grpc"
-	"google.golang.org/protobuf/types/known/wrapperspb"
 	"io"
 	"log"
 )
-
-type Token interface {
-	GetToken() string
-	GetError() string
-}
-
-type User interface {
-	GetLogin() string
-	GetPassword() string
-	GetRole() string
-}
-
-type gRPC interface {
-	UserExist(ctx context.Context, in *User, opts ...grpc.CallOption) (*wrapperspb.BoolValue, error)
-	AddUser(ctx context.Context, in *User, opts ...grpc.CallOption) (*wrapperspb.StringValue, error)
-	UpdateUser(ctx context.Context, in *User, opts ...grpc.CallOption) (*wrapperspb.StringValue, error)
-	DelUser(ctx context.Context, in *User, opts ...grpc.CallOption) (*wrapperspb.StringValue, error)
-	GetToken(ctx context.Context, in *User, opts ...grpc.CallOption) (*Token, error)
-}
 
 type S3 interface {
 	GetObject(bucketName string, objectName string, opts minio.GetObjectOptions) (*minio.Object, error)
