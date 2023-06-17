@@ -27,7 +27,7 @@ func DeleteObjectHandler(s3 general.S3, secret *[]byte) gin.HandlerFunc {
 			return
 		}
 
-		object := c.PostForm("objectpath")
+		object := c.PostForm("objectPath")
 		filesList := general.GetS3Objects(s3, token[0], object, true)
 		for _, obj := range filesList {
 			if err = s3.RemoveObject(token[0], obj); err != nil {
@@ -48,7 +48,7 @@ func DownloadFileHandler(s3 general.S3, secret *[]byte) gin.HandlerFunc {
 			c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": err})
 			return
 		}
-		objectPath := c.PostForm("objectpath")
+		objectPath := c.PostForm("objectPath")
 
 		var byteFile []byte
 		object, err := s3.GetObject(token[0], objectPath, minio.GetObjectOptions{})

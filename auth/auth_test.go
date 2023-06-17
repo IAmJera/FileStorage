@@ -35,10 +35,10 @@ func (s *testS3) MakeBucket(bucketName string, _ string) (err error) {
 	return nil
 }
 func (s *testS3) RemoveBucket(_ string) error {
-	return nil
+	return fmt.Errorf("error")
 }
 func (s *testS3) RemoveObject(bucketName string, _ string) error {
-	if bucketName == "error" {
+	if bucketName == "error" || bucketName == "test" {
 		return fmt.Errorf("error")
 	}
 	return nil
@@ -149,7 +149,7 @@ func TestParseToken(t *testing.T) {
 		{
 			name:     "invalid token",
 			wantUser: "test2",
-			token:    "qwertyerligerhikgrebk",
+			token:    "qwerty12345qwerty",
 			secret:   []byte("secret"),
 			wantErr:  fmt.Errorf("token contains an invalid number of segments")},
 		{
@@ -191,7 +191,7 @@ func TestMiddleware(t *testing.T) {
 			expected: http.StatusUnauthorized},
 		{
 			name:     "too much substrings",
-			header:   "Bearer neriuogiobhnerg erhoig;erioh;",
+			header:   "Bearer qwerty12345 qwerty12345;",
 			path:     "/path2",
 			expected: http.StatusUnauthorized},
 		{
@@ -272,7 +272,7 @@ func TestSignUpHandler(t *testing.T) {
 			w := httptest.NewRecorder()
 			form := strings.NewReader("login=" + tc.login + "&password=" + tc.password)
 			req, _ := http.NewRequest(http.MethodPost, tc.path, form)
-			req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+			req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 
 			handler := auth.SignUpHandler(&rpc, &s3)
 			router.POST(tc.path, handler)

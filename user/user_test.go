@@ -44,41 +44,51 @@ func TestUser_ParseCredentials(t *testing.T) {
 		name     string
 		login    string
 		password string
-		wantUser user.User
 		wantBool bool
 	}{
 		{
 			name:     "right credentials",
 			login:    "testUser",
 			password: "testPassword",
-			wantUser: user.User{Login: "testUser", Password: "testPassword"}},
+			wantBool: true},
 		{
 			name:     "wrong password",
 			login:    "test1",
 			password: "qwerty",
-			wantUser: user.User{Login: "test1", Password: "qwerty1"}},
+			wantBool: true},
 		{
 			name:     "wrong user",
 			login:    "test",
 			password: "qwerty1",
-			wantUser: user.User{Login: "test1", Password: "qwerty1"}},
+			wantBool: true},
 		{
 			name:     "wrong credentials",
 			login:    "test",
 			password: "qwerty",
-			wantUser: user.User{Login: "test1", Password: "qwerty1"}},
+			wantBool: true},
+		{
+			name:     "no credentials",
+			login:    "test",
+			password: "qwerty",
+			wantBool: false},
 	}
 	for _, tc := range tests {
 		c, _ := gin.CreateTestContext(httptest.NewRecorder())
-		form := strings.NewReader("login=" + tc.login + "&password=" + tc.password)
-		c.Request, _ = http.NewRequest(http.MethodPost, "/", form)
-		c.Request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		if tc.wantBool {
+			form := strings.NewReader("login=" + tc.login + "&password=" + tc.password)
+			c.Request, _ = http.NewRequest(http.MethodPost, "/", form)
+			c.Request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		} else {
+			c.Request, _ = http.NewRequest(http.MethodPost, "/", nil)
+		}
 		usr := user.User{}
 
-		if ok := usr.ParseCredentials(c); !ok {
-			t.Fatal("Failed to parse credentials")
+		ok := usr.ParseCredentials(c)
+		assert.Equal(t, tc.wantBool, ok)
+
+		if ok {
+			assert.Equal(t, tc.password, usr.Password)
+			assert.Equal(t, tc.login, usr.Login)
 		}
-		assert.Equal(t, tc.password, usr.Password)
-		assert.Equal(t, tc.login, usr.Login)
 	}
 }

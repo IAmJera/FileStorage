@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"strings"
 	"testing"
 	"time"
 )
@@ -48,7 +49,7 @@ func (s *testS3) RemoveObject(bucketName string, _ string) error {
 }
 
 func (s *testS3) PutObject(bucketName string, _ string, _ io.Reader, _ int64, _ minio.PutObjectOptions) (n int64, err error) {
-	if bucketName == "error" {
+	if bucketName == "error" || bucketName == "s3error" {
 		return 0, fmt.Errorf("error")
 	}
 	return 0, nil
@@ -103,27 +104,28 @@ func TestDeleteObjectHandler(t *testing.T) {
 			description: "valid token",
 			token:       token,
 			path:        "/path1",
-			body:        "test1",
+			body:        "objectPath=test1",
 			expected:    http.StatusOK},
 		{
 			description: "error removing",
 			token:       errToken,
 			path:        "/path2",
-			body:        "test2",
+			body:        "objectPath=test2",
 			expected:    http.StatusInternalServerError},
 		{
 			description: "invalid token",
 			token:       "wrongToken",
 			path:        "/path3",
-			body:        "test3",
+			body:        "objectPath=test3",
 			expected:    http.StatusInternalServerError},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.description, func(t *testing.T) {
 			w := httptest.NewRecorder()
-			req, err := http.NewRequest(http.MethodPost, tc.path, bytes.NewBufferString(tc.body))
+			req, err := http.NewRequest(http.MethodPost, tc.path, strings.NewReader(tc.body))
 			assert.NoError(t, err)
+			req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 			req.Header.Add("Authorization", "Bearer "+tc.token)
 
 			handler := handlers.DeleteObjectHandler(s3, &secret)
@@ -187,6 +189,7 @@ func TestCreateDirHandler(t *testing.T) {
 	secret := []byte("secret")
 	router := gin.Default()
 	errToken, _ := createToken("error", &secret)
+	errToken2, _ := createToken("s3error", &secret)
 	token, _ := createToken("test", &secret)
 	s3 := &testS3{}
 
@@ -201,25 +204,31 @@ func TestCreateDirHandler(t *testing.T) {
 			name:     "valid token and form data",
 			token:    token,
 			path:     "/path1",
-			body:     "test/",
+			body:     "path=test/",
 			expected: http.StatusOK},
 		{
 			name:     "error creating dir",
 			token:    errToken,
 			path:     "/path2",
-			body:     "test",
+			body:     "path=test",
 			expected: http.StatusOK},
 		{
 			name:     "error creating dir",
 			token:    errToken,
 			path:     "/path3",
-			body:     "",
+			body:     "path=",
 			expected: http.StatusOK},
 		{
 			name:     "invalid token",
 			token:    "wrongToken",
 			path:     "/path4",
-			body:     "",
+			body:     "path=",
+			expected: http.StatusInternalServerError},
+		{
+			name:     "s3 error",
+			token:    errToken2,
+			path:     "/path5",
+			body:     "path=/test/",
 			expected: http.StatusInternalServerError},
 	}
 
@@ -228,6 +237,7 @@ func TestCreateDirHandler(t *testing.T) {
 			w := httptest.NewRecorder()
 			req, err := http.NewRequest(http.MethodPost, tc.path, bytes.NewBufferString(tc.body))
 			assert.NoError(t, err)
+			req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 			req.Header.Add("Authorization", "Bearer "+tc.token)
 
 			handler := handlers.CreateDirHandler(s3, &secret)
