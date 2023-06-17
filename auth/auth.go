@@ -6,17 +6,14 @@ import (
 	"FileStorage/user"
 	"context"
 	"github.com/gin-gonic/gin"
-	"github.com/minio/minio-go"
 	"log"
 	"net/http"
 	"os"
 	"strings"
 )
 
-var mySigningKey = []byte(os.Getenv("SIGNING_KEY"))
-
 // SignUpHandler registers the user by writing his data to the database
-func SignUpHandler(rpc api.AuthClient, s3 *minio.Client) gin.HandlerFunc {
+func SignUpHandler(rpc api.AuthClient, s3 general.S3) gin.HandlerFunc {
 	fn := func(c *gin.Context) {
 		var usr user.User
 		if ok := usr.ParseCredentials(c); !ok {
@@ -29,7 +26,7 @@ func SignUpHandler(rpc api.AuthClient, s3 *minio.Client) gin.HandlerFunc {
 			return
 		}
 
-		u := api.User{Login: usr.Login, Password: general.Hash(usr.Password), Role: usr.Role}
+		u := api.User{Login: usr.Login, Password: general.Hash(usr.Password, os.Getenv("SALT"))}
 		resp, err := rpc.AddUser(context.Background(), &u)
 		if err != nil {
 			c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": err})
@@ -52,9 +49,9 @@ func SignUpHandler(rpc api.AuthClient, s3 *minio.Client) gin.HandlerFunc {
 }
 
 // ChangePasswordHandler changes user's password
-func ChangePasswordHandler(rpc api.AuthClient) gin.HandlerFunc {
+func ChangePasswordHandler(rpc api.AuthClient, secret *[]byte) gin.HandlerFunc {
 	fn := func(c *gin.Context) {
-		token, err := ParseToken(strings.Split(c.GetHeader("Authorization"), " ")[1], &mySigningKey)
+		token, err := ParseToken(strings.Split(c.GetHeader("Authorization"), " ")[1], secret)
 		if err != nil {
 			c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": err})
 			return
@@ -65,7 +62,7 @@ func ChangePasswordHandler(rpc api.AuthClient) gin.HandlerFunc {
 			c.AbortWithStatus(http.StatusBadRequest)
 			return
 		}
-		u := api.User{Login: token[0], Role: usr.Role, Password: general.Hash(usr.Password)}
+		u := api.User{Login: token[0], Password: general.Hash(usr.Password, os.Getenv("SALT"))}
 		res, err := rpc.UpdateUser(context.Background(), &u)
 		if err != nil {
 			c.IndentedJSON(http.StatusOK, gin.H{"error": err})
@@ -82,9 +79,9 @@ func ChangePasswordHandler(rpc api.AuthClient) gin.HandlerFunc {
 }
 
 // DeleteUserHandler removes user from DB and S3
-func DeleteUserHandler(rpc api.AuthClient, s3 *minio.Client) gin.HandlerFunc {
+func DeleteUserHandler(rpc api.AuthClient, s3 general.S3, secret *[]byte) gin.HandlerFunc {
 	fn := func(c *gin.Context) {
-		token, err := ParseToken(strings.Split(c.GetHeader("Authorization"), " ")[1], &mySigningKey)
+		token, err := ParseToken(strings.Split(c.GetHeader("Authorization"), " ")[1], secret)
 		if err != nil {
 			c.IndentedJSON(http.StatusInternalServerError, gin.H{"message": err})
 			return
@@ -125,7 +122,7 @@ func SignInHandler(rpc api.AuthClient) gin.HandlerFunc {
 			return
 		}
 
-		u := api.User{Login: usr.Login, Role: usr.Role, Password: general.Hash(usr.Password)}
+		u := api.User{Login: usr.Login, Password: general.Hash(usr.Password, os.Getenv("SALT"))}
 		token, err := rpc.GetToken(context.Background(), &u)
 		if err != nil {
 			c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": err})
