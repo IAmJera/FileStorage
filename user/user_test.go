@@ -3,6 +3,7 @@ package user_test
 import (
 	"FileStorage/user"
 	"github.com/gin-gonic/gin"
+	"github.com/stretchr/testify/assert"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -34,9 +35,7 @@ func TestUser_CheckCredentials(t *testing.T) {
 	}
 	for _, tc := range tests {
 		gotBool := tc.user.CheckCredentials()
-		if gotBool != tc.wantBool {
-			t.Errorf("%s: user.CheckCredentials() gotBool = %v, want %v", tc.name, gotBool, tc.wantBool)
-		}
+		assert.Equal(t, tc.wantBool, gotBool)
 	}
 }
 
@@ -79,8 +78,7 @@ func TestUser_ParseCredentials(t *testing.T) {
 		if ok := usr.ParseCredentials(c); !ok {
 			t.Fatal("Failed to parse credentials")
 		}
-		if usr.Login != tc.login && usr.Password != tc.password {
-			t.Errorf("%s: user.ParseCredentials() gotUser = %v, want %v", tc.name, usr, tc.wantUser)
-		}
+		assert.Equal(t, tc.password, usr.Password)
+		assert.Equal(t, tc.login, usr.Login)
 	}
 }

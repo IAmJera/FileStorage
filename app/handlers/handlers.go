@@ -149,7 +149,8 @@ func putFile(c *gin.Context, s3 general.S3, file multipart.File, filename string
 		counter = 0
 	}
 
-	filepath := "/tmp/" + strconv.FormatInt(time.Now().UnixMicro(), 10) + string(counter) + token[0] + filename
+	timestamp := strconv.FormatInt(time.Now().UnixMicro(), 10)
+	filepath := "/tmp/" + timestamp + string(counter) + token[0] + path + filename
 	out, err := os.Create(filepath)
 	if err != nil {
 		return err

@@ -9,8 +9,10 @@ import (
 	"github.com/minio/minio-go"
 	"github.com/stretchr/testify/assert"
 	"io"
+	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 	"time"
 )
@@ -29,27 +31,36 @@ func (s *testS3) GetObject(bucketName string, _ string, _ minio.GetObjectOptions
 	}
 	return nil, nil
 }
+
 func (s *testS3) MakeBucket(_ string, _ string) (err error) {
 	return nil
 }
+
 func (s *testS3) RemoveBucket(_ string) error {
 	return nil
 }
+
 func (s *testS3) RemoveObject(bucketName string, _ string) error {
 	if bucketName == "error" {
 		return fmt.Errorf("error")
 	}
 	return nil
 }
+
 func (s *testS3) PutObject(bucketName string, _ string, _ io.Reader, _ int64, _ minio.PutObjectOptions) (n int64, err error) {
 	if bucketName == "error" {
 		return 0, fmt.Errorf("error")
 	}
 	return 0, nil
 }
-func (s *testS3) FPutObject(bucketName string, objectName string, filePath string, _ minio.PutObjectOptions) (n int64, err error) {
+
+func (s *testS3) FPutObject(bucketName string, _ string, _ string, _ minio.PutObjectOptions) (n int64, err error) {
+	if bucketName == "error" {
+		return 0, fmt.Errorf("error")
+	}
 	return 0, nil
 }
+
 func (s *testS3) ListObjects(_ string, objectPrefix string, _ bool, _ <-chan struct{}) <-chan minio.ObjectInfo {
 	ch := make(chan minio.ObjectInfo)
 	go func() {
@@ -110,16 +121,16 @@ func TestDeleteObjectHandler(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.description, func(t *testing.T) {
-			recorder := httptest.NewRecorder()
+			w := httptest.NewRecorder()
 			req, err := http.NewRequest(http.MethodPost, tc.path, bytes.NewBufferString(tc.body))
 			assert.NoError(t, err)
 			req.Header.Add("Authorization", "Bearer "+tc.token)
 
 			handler := handlers.DeleteObjectHandler(s3, &secret)
 			router.POST(tc.path, handler)
-			router.ServeHTTP(recorder, req)
+			router.ServeHTTP(w, req)
 
-			assert.Equal(t, tc.expected, recorder.Code)
+			assert.Equal(t, tc.expected, w.Code)
 		})
 	}
 }
@@ -157,16 +168,16 @@ func TestDownloadFileHandler(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			recorder := httptest.NewRecorder()
+			w := httptest.NewRecorder()
 			req, err := http.NewRequest(http.MethodPost, tc.path, nil)
 			assert.NoError(t, err)
 			req.Header.Add("Authorization", "Bearer "+tc.token)
 
 			handler := handlers.DownloadFileHandler(s3, &secret)
 			router.POST(tc.path, handler)
-			router.ServeHTTP(recorder, req)
+			router.ServeHTTP(w, req)
 
-			assert.Equal(t, tc.expected, recorder.Code)
+			assert.Equal(t, tc.expected, w.Code)
 		})
 	}
 }
@@ -214,16 +225,16 @@ func TestCreateDirHandler(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			recorder := httptest.NewRecorder()
+			w := httptest.NewRecorder()
 			req, err := http.NewRequest(http.MethodPost, tc.path, bytes.NewBufferString(tc.body))
 			assert.NoError(t, err)
 			req.Header.Add("Authorization", "Bearer "+tc.token)
 
 			handler := handlers.CreateDirHandler(s3, &secret)
 			router.POST(tc.path, handler)
-			router.ServeHTTP(recorder, req)
+			router.ServeHTTP(w, req)
 
-			assert.Equal(t, tc.expected, recorder.Code)
+			assert.Equal(t, tc.expected, w.Code)
 		})
 	}
 }
@@ -255,16 +266,85 @@ func TestListFilesHandler(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.description, func(t *testing.T) {
-			recorder := httptest.NewRecorder()
+			w := httptest.NewRecorder()
 			req, err := http.NewRequest(http.MethodPost, tc.path, nil)
 			assert.NoError(t, err)
 			req.Header.Add("Authorization", "Bearer "+tc.token)
 
 			handler := handlers.ListFilesHandler(s3, &secret)
 			router.POST(tc.path, handler)
-			router.ServeHTTP(recorder, req)
+			router.ServeHTTP(w, req)
 
-			assert.Equal(t, tc.expected, recorder.Code)
+			assert.Equal(t, tc.expected, w.Code)
 		})
+	}
+}
+
+func TestUploadFileHandler(t *testing.T) {
+	secret := []byte("secret")
+	token1, _ := createToken("noFile", &secret)
+	token2, _ := createToken("error", &secret)
+	token3, _ := createToken("test", &secret)
+	s3 := testS3{}
+
+	testCases := []struct {
+		description string
+		token       string
+		path        string
+		file        bool
+		expected    int
+	}{
+		{
+			description: "without file",
+			token:       token1,
+			path:        "/path1",
+			file:        false,
+			expected:    http.StatusBadRequest},
+		{
+			description: "s3 error",
+			token:       token2,
+			path:        "/path2",
+			file:        true,
+			expected:    http.StatusInternalServerError},
+		{
+			description: "success",
+			token:       token3,
+			path:        "/path3",
+			file:        true,
+			expected:    http.StatusOK},
+	}
+
+	for _, tc := range testCases {
+		w := httptest.NewRecorder()
+		var req *http.Request
+		var router *gin.Engine
+
+		if tc.file {
+			tempFile, _ := os.CreateTemp("", "test-file")
+			bodyBuf := &bytes.Buffer{}
+			bodyWriter := multipart.NewWriter(bodyBuf)
+			fileWriter, _ := bodyWriter.CreateFormFile("file", tempFile.Name())
+			f, _ := os.Open(tempFile.Name())
+			_, _ = io.Copy(fileWriter, f)
+			contentType := bodyWriter.FormDataContentType()
+			_ = bodyWriter.Close()
+
+			req, _ = http.NewRequest("POST", tc.path, bodyBuf)
+			req.Header.Add("Content-Type", contentType)
+			_, router = gin.CreateTestContext(w)
+			router.POST(tc.path, handlers.UploadFileHandler(&s3, &secret))
+
+			_ = os.Remove(tempFile.Name())
+			_ = f.Close()
+		} else {
+			req, _ = http.NewRequest("POST", tc.path, nil)
+			_, router = gin.CreateTestContext(w)
+			router.POST(tc.path, handlers.UploadFileHandler(&s3, &secret))
+		}
+
+		req.Header.Add("Authorization", "Bearer "+tc.token)
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, tc.expected, w.Code)
 	}
 }

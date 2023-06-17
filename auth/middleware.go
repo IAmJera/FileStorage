@@ -5,16 +5,12 @@ import (
 	"FileStorage/api"
 	"FileStorage/user"
 	"context"
-	"errors"
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt"
 	"net/http"
 	"strings"
 )
-
-// ErrInvalidToken defines the error of the invalid token
-var ErrInvalidToken = errors.New("invalid token")
 
 // Middleware verifies the token and authorizes the user
 func Middleware(rpc api.AuthClient, secret *[]byte) gin.HandlerFunc {
@@ -35,7 +31,7 @@ func Middleware(rpc api.AuthClient, secret *[]byte) gin.HandlerFunc {
 		token, err := ParseToken(headerPart[1], secret)
 		if err != nil {
 			status = http.StatusBadRequest
-			if err == ErrInvalidToken {
+			if err.Error() == "invalid token" {
 				status = http.StatusUnauthorized
 			}
 			c.AbortWithStatus(status)
@@ -68,5 +64,5 @@ func ParseToken(accessToken string, key *[]byte) ([]string, error) {
 	if claims, ok := token.Claims.(*user.User); ok && token.Valid {
 		return []string{claims.Login, claims.Role}, nil
 	}
-	return []string{}, ErrInvalidToken
+	return []string{}, fmt.Errorf("invalid token")
 }

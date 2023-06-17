@@ -8,32 +8,6 @@ import (
 	"testing"
 )
 
-func TestHash(t *testing.T) {
-	tests := []struct {
-		name  string
-		input string
-		salt  string
-		res   string
-	}{
-		{
-			name:  "hash_password_1",
-			input: "qwertyuiop",
-			res:   "dd7548fbd04ea7da3eaca4a4de8c283cd810ae60da74f6a6eb104216e3295ca1",
-			salt:  "salt"},
-		{
-			name:  "hash_password_2",
-			input: "testPassword",
-			res:   "e7ecf5b48eaa7312c6613c6da7520452a188abb0abe23204255dfd74de33d6c5",
-			salt:  "salt"},
-	}
-	for _, tt := range tests {
-		gotRes := general.Hash(tt.input, tt.salt)
-		if gotRes != tt.res {
-			t.Errorf("%s: Hash() gotRes = %v, want %v", tt.name, gotRes, tt.res)
-		}
-	}
-}
-
 type testS3 struct{}
 
 func (s *testS3) GetObject(_ string, _ string, _ minio.GetObjectOptions) (*minio.Object, error) {
@@ -64,6 +38,30 @@ func (s *testS3) ListObjects(_ string, objectPrefix string, _ bool, _ <-chan str
 		}
 	}()
 	return ch
+}
+
+func TestHash(t *testing.T) {
+	tests := []struct {
+		name  string
+		input string
+		salt  string
+		res   string
+	}{
+		{
+			name:  "hash_password_1",
+			input: "qwertyuiop",
+			res:   "dd7548fbd04ea7da3eaca4a4de8c283cd810ae60da74f6a6eb104216e3295ca1",
+			salt:  "salt"},
+		{
+			name:  "hash_password_2",
+			input: "testPassword",
+			res:   "e7ecf5b48eaa7312c6613c6da7520452a188abb0abe23204255dfd74de33d6c5",
+			salt:  "salt"},
+	}
+	for _, tc := range tests {
+		gotRes := general.Hash(tc.input, tc.salt)
+		assert.Equal(t, tc.res, gotRes)
+	}
 }
 
 func TestGetS3Objects(t *testing.T) {

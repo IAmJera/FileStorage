@@ -31,8 +31,8 @@ func main() {
 	r := gin.Default()
 	r.POST("/auth/Sign-In", auth.SignInHandler(rpc))
 	r.POST("/auth/Sign-Up", auth.SignUpHandler(rpc, s3))
-	r.PUT("/auth/ChangePass", auth.Middleware(rpc), auth.ChangePasswordHandler(rpc))
-	r.DELETE("/auth/DeleteUser", auth.Middleware(rpc), auth.DeleteUserHandler(rpc, s3))
+	r.PUT("/auth/ChangePass", auth.Middleware(rpc, &secret), auth.ChangePasswordHandler(rpc, &secret))
+	r.DELETE("/auth/DeleteUser", auth.Middleware(rpc, &secret), auth.DeleteUserHandler(rpc, s3, &secret))
 
 	r.POST("/app/Upload", auth.Middleware(rpc, &secret), handlers.UploadFileHandler(s3, &secret))
 	r.POST("/app/ListFiles", auth.Middleware(rpc, &secret), handlers.ListFilesHandler(s3, &secret))
