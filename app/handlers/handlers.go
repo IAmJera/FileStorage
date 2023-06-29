@@ -153,7 +153,7 @@ func putFile(c *gin.Context, s3 general.S3, file multipart.File, filename string
 	if _, err = io.Copy(out, file); err != nil {
 		return err
 	}
-	_, err = s3.FPutObject(token[0], path+filename, filepath, minio.PutObjectOptions{})
+	_, err = s3.FPutObject(token[0], path+"/"+filename, filepath, minio.PutObjectOptions{})
 	if err != nil {
 		return err
 	}
