@@ -16,8 +16,6 @@ import (
 	"time"
 )
 
-var counter uint8 = 0
-
 // DeleteObjectHandler sends a request to delete the user's file
 func DeleteObjectHandler(s3 general.S3, secret *[]byte) gin.HandlerFunc {
 	fn := func(c *gin.Context) {
@@ -144,13 +142,8 @@ func putFile(c *gin.Context, s3 general.S3, file multipart.File, filename string
 	}
 	path := c.PostForm("path")
 
-	counter += 1
-	if counter == 255 {
-		counter = 0
-	}
-
 	timestamp := strconv.FormatInt(time.Now().UnixMicro(), 10)
-	filepath := "/tmp/" + timestamp + string(counter) + token[0] + path + filename
+	filepath := "/tmp/" + timestamp + token[0] + path + filename
 	out, err := os.Create(filepath)
 	if err != nil {
 		return err
